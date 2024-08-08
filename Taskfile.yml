@@ -1,0 +1,33 @@
+version: "3"
+
+vars:
+  POETRY: poetry run
+  NOX: "{{.POETRY}} nox"
+
+tasks:
+  format:
+    cmds:
+      - "{{.POETRY}} ruff format tests src"
+  lint:
+    cmds:
+      - "{{.POETRY}} ruff check tests src"
+  test:
+    cmds:
+      - "{{.POETRY}} pytest tests --cov=src"
+  test-all:
+    cmds:
+      - "rm -rf ./dist"
+      - "poetry export -f requirements.txt --with dev > requirements.txt"
+      - "poetry build -f wheel"
+      - for: ["3.10", "3.11", "3.12"]
+        task: test_version
+        vars:
+          VERSION: "{{.ITEM}}"
+  test_version:
+    internal: true
+    env:
+      VIRTUAL_ENV: "./venvs/venv{{ .VERSION }}"
+    cmds:
+      - uv venv $VIRTUAL_ENV --python {{.VERSION}}
+      - uv pip install -r requirements.txt ./dist/*.whl
+      - $VIRTUAL_ENV/bin/pytest tests

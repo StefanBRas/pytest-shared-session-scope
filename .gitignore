@@ -1,0 +1,10 @@
+__pycache__
+**/.venv
+venvs/
+dist/
+**/.coverage
+**/coverage.xml
+
+
+dev_requirements.txt
+
