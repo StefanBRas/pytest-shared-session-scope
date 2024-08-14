@@ -12,12 +12,10 @@ from pytest_shared_session_scope.types import Cache, Lock, Storage, ValueNotExis
 from xdist import is_xdist_controller
 
 
-# TODO: pass parameters to the
-def shared_session_scope_fixture_loader(
-    storage: Storage,
-    lock: Lock,
-    cache: Optional[Cache] = None,
+def shared_session_scope_fixture(
+    storage: Storage, lock: Lock, cache: Optional[Cache] = None, **kwargs
 ):
+    # TODO: add docstrings here
     def _inner(func: Callable):
         fixture_names = set(storage.fixtures) | {"request"}
         if cache:
@@ -40,7 +38,7 @@ def shared_session_scope_fixture_loader(
         parameters.extend(extra_params)
         func.__signature__ = signature.replace(parameters=parameters)  # pyright: ignore
 
-        @pytest.fixture(scope="session")
+        @pytest.fixture(scope="session", **kwargs)
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             fixture_values = {k: kwargs[k] for k in fixture_names}
@@ -86,5 +84,5 @@ def shared_session_scope_fixture_loader(
 
 
 shared_json_scope_fixture = partial(
-    shared_session_scope_fixture_loader, JsonStorage(), FileLock
+    shared_session_scope_fixture, JsonStorage(), FileLock
 )

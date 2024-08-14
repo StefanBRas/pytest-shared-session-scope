@@ -5,7 +5,7 @@ from typing import Any
 from pytest_shared_session_scope.types import ValueNotExists
 
 
-class FileStorageMixin:
+class LocalFileStorageMixin:
     fixtures = ["tmp_path_factory"]
 
     def exists(self, key: str, fixture_values: dict[str, Any]) -> bool:
@@ -16,7 +16,7 @@ class FileStorageMixin:
         return str(root_tmp_dir / f"{func_qual_name}.json")
 
 
-class JsonStorage(FileStorageMixin):
+class JsonStorage(LocalFileStorageMixin):
     def read(self, key: str, fixture_values: dict[str, Any]) -> Any:
         try:
             return json.loads(Path(key).read_text())

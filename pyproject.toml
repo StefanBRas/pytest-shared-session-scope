@@ -2,7 +2,7 @@
 name = "pytest-shared-session-scope"
 version = "0.1.1"
 description = ""
-authors = ["Stefan Rasmussen <sras@wayfare.ai>"]
+authors = ["Stefan Rasmussen <stefan@bruhn.io>"]
 readme = "README.md"
 packages = [{include = "pytest_shared_session_scope", from = "src"}]
 
