@@ -3,6 +3,7 @@ version: "3"
 vars:
   POETRY: poetry run
   NOX: "{{.POETRY}} nox"
+  REQ_LOCATION: .test_requirements.txt
 
 tasks:
   format:
@@ -17,17 +18,25 @@ tasks:
   test-all:
     cmds:
       - "rm -rf ./dist"
-      - "poetry export -f requirements.txt --with dev > requirements.txt"
+      - "poetry export -f requirements.txt --with dev > {{.REQ_LOCATION}}"
       - "poetry build -f wheel"
+      - task: test_versions
+  test_version:
+    # Make this somehow work from the commandline too
+    internal: True
+    env:
+      VIRTUAL_ENV: "./venvs/venv{{ .VERSION }}"
+    cmds:
+      - echo {{.ITEM}}
+      - uv venv $VIRTUAL_ENV --python {{.VERSION}}
+      - uv pip install -r {{.REQ_LOCATION}} ./dist/*.whl
+      - $VIRTUAL_ENV/bin/pytest tests
+  test_versions:
+    internal: true
+    deps:
       - for: ["3.10", "3.11", "3.12"]
         task: test_version
         vars:
           VERSION: "{{.ITEM}}"
-  test_version:
-    internal: true
-    env:
-      VIRTUAL_ENV: "./venvs/venv{{ .VERSION }}"
     cmds:
-      - uv venv $VIRTUAL_ENV --python {{.VERSION}}
-      - uv pip install -r requirements.txt ./dist/*.whl
-      - $VIRTUAL_ENV/bin/pytest tests
+      - rm {{.REQ_LOCATION}}
