@@ -2,23 +2,26 @@ import functools
 import inspect
 from collections.abc import Callable
 from functools import partial
+from typing import Optional
 
 import pytest
 
 from pytest_shared_session_scope.lock import FileLock
 from pytest_shared_session_scope.storage import JsonStorage
-from pytest_shared_session_scope.types import Lock, Storage
+from pytest_shared_session_scope.types import Cache, Lock, Storage, ValueNotExists
+from xdist import is_xdist_controller
 
 
+# TODO: pass parameters to the
 def shared_session_scope_fixture_loader(
     storage: Storage,
     lock: Lock,
+    cache: Optional[Cache] = None,
 ):
     def _inner(func: Callable):
-        if fixtures := storage.fixtures:
-            fixture_names = set(fixtures) | {"worker_id"}
-        else:
-            fixture_names = {"worker_id"}
+        fixture_names = set(storage.fixtures) | {"request"}
+        if cache:
+            fixture_names |= set(cache.fixtures)
 
         signature = inspect.signature(func)
         parameters = []
@@ -41,6 +44,8 @@ def shared_session_scope_fixture_loader(
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             fixture_values = {k: kwargs[k] for k in fixture_names}
+            storage_key = storage.get_key(func.__qualname__, fixture_values)
+            resolved_lock = lock(storage_key) if isinstance(lock, Callable) else lock
 
             def _call():
                 new_kwargs = {
@@ -51,19 +56,28 @@ def shared_session_scope_fixture_loader(
                     return next(res)
                 return res
 
-            if fixture_values["worker_id"] == "master":
-                # not executing in with multiple workers, just produce the data and let
-                # pytest's fixture caching do its job
-                data = _call()
-            else:
-                key = storage.get_key(func.__qualname__, fixture_values)
-                resolved_lock = lock(key) if isinstance(lock, Callable) else lock
-                with resolved_lock:
-                    if storage.exists(key, fixture_values):
-                        data = storage.read(key, fixture_values)
-                    else:
-                        data = _call()
-                        storage.write(key, data, fixture_values)
+            def _call_with_storage():
+                try:
+                    return storage.read(storage_key, fixture_values)
+                except ValueNotExists:
+                    data = _call()
+                    return storage.write(storage_key, data, fixture_values)
+
+            def call():
+                if is_xdist_controller(fixture_values["request"]):
+                    return _call()
+                return _call_with_storage()
+
+            with resolved_lock:
+                if cache:
+                    cache_key = cache.get_key(func.__qualname__, fixture_values)
+                    try:
+                        data = cache.get(cache_key, fixture_values)
+                    except KeyError:
+                        data = call()
+                        cache.set(data, cache_key, fixture_values)
+                else:
+                    data = call()
             yield data
 
         return wrapper

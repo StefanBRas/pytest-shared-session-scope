@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pytest_shared_session_scope.types import ValueNotExists
+
 
 class FileStorageMixin:
     fixtures = ["tmp_path_factory"]
@@ -16,7 +18,11 @@ class FileStorageMixin:
 
 class JsonStorage(FileStorageMixin):
     def read(self, key: str, fixture_values: dict[str, Any]) -> Any:
-        return json.loads(Path(key).read_text())
+        try:
+            return json.loads(Path(key).read_text())
+        except FileNotFoundError:
+            raise ValueNotExists
 
     def write(self, key: str, data: Any, fixture_values: dict[str, Any]) -> Any:
-        return Path(key).write_text(json.dumps(data))
+        Path(key).write_text(json.dumps(data))
+        return data
