@@ -6,14 +6,13 @@ pytest_plugins = ["pytester"]
 
 
 @shared_json_scope_fixture()
-def my_fixture_with_worker_id_storage(worker_id):
+def my_fixture_with_worker_id_storage(worker_id: str):
     yield worker_id
 
 
 @pytest.fixture(scope="session")
 def tmp_fixture():
     return 3
-
 
 def _my_fixture_with_worker_id_storage(worker_id):
     yield worker_id

@@ -8,12 +8,20 @@ import pytest
 
 from pytest_shared_session_scope.lock import FileLock
 from pytest_shared_session_scope.storage import JsonStorage
-from pytest_shared_session_scope.types import Cache, Lock, Storage, ValueNotExists
+from pytest_shared_session_scope.types import Cache, CleanUp, Lock, Storage, ValueNotExists
 from xdist import is_xdist_controller
 
+x = (y for y in range(10))
+
+x.close
+
+# TODO: type this better
 
 def shared_session_scope_fixture(
-    storage: Storage, lock: Lock, cache: Optional[Cache] = None, **kwargs
+    storage: Storage, lock: Lock, 
+    cache: Optional[Cache] = None,
+    clean_up: CleanUp = 'last'
+    , **kwargs
 ):
     # TODO: add docstrings here
     def _inner(func: Callable):
@@ -44,6 +52,7 @@ def shared_session_scope_fixture(
             fixture_values = {k: kwargs[k] for k in fixture_names}
             storage_key = storage.get_key(func.__qualname__, fixture_values)
             resolved_lock = lock(storage_key) if isinstance(lock, Callable) else lock
+            cleanup_generator = None
 
             def _call():
                 new_kwargs = {
@@ -51,6 +60,7 @@ def shared_session_scope_fixture(
                 }
                 res = func(*args, **new_kwargs)
                 if inspect.isgenerator(res):
+                    cleanup_generator = res
                     return next(res)
                 return res
 
@@ -77,6 +87,11 @@ def shared_session_scope_fixture(
                 else:
                     data = call()
             yield data
+            if cleanup_generator:
+                try:
+                    next(cleanup_generator)
+                except StopIteration:
+                    pass
 
         return wrapper
 

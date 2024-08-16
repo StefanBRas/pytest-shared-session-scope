@@ -140,7 +140,7 @@ def test_only_one_worker_calculates(pytester: Pytester, tmp_path: Path, i: int, 
 def test_cache(pytester: Pytester, tmp_path: Path, n: int):
     pytester.makeconftest(
         f"""
-        from pytest_shared_session_scope import shared_session_scope_fixture_loader
+        from pytest_shared_session_scope import shared_session_scope_fixture
         from pytest_shared_session_scope.cache import PytestRequestCache
         from pytest_shared_session_scope.storage import JsonStorage 
         from pytest_shared_session_scope.lock import FileLock
@@ -148,7 +148,7 @@ def test_cache(pytester: Pytester, tmp_path: Path, n: int):
         import pytest
         from pathlib import Path
 
-        @shared_session_scope_fixture_loader(JsonStorage(), FileLock, PytestRequestCache())
+        @shared_session_scope_fixture(JsonStorage(), FileLock, PytestRequestCache())
         def my_fixture(worker_id):
             yield str(randint(0, 100_000))
 
