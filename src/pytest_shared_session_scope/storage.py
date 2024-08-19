@@ -1,6 +1,8 @@
+from contextlib import contextmanager
 import json
 from pathlib import Path
 from typing import Any
+from filelock import FileLock as _FileLock
 
 from pytest_shared_session_scope.types import ValueNotExists
 
@@ -14,6 +16,11 @@ class LocalFileStorageMixin:
     def get_key(self, func_qual_name: str, fixture_values: dict[str, Any]) -> str:
         root_tmp_dir = fixture_values["tmp_path_factory"].getbasetemp().parent
         return str(root_tmp_dir / f"{func_qual_name}.json")
+
+    @contextmanager
+    def lock(self, key: str):
+        with _FileLock(key + ".lock"):
+            yield
 
 
 class JsonStorage(LocalFileStorageMixin):

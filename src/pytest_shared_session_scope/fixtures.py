@@ -8,7 +8,7 @@ import pytest
 
 from pytest_shared_session_scope.lock import FileLock
 from pytest_shared_session_scope.storage import JsonStorage
-from pytest_shared_session_scope.types import Cache, CleanUp, Lock, Storage, ValueNotExists
+from pytest_shared_session_scope.types import Cache, CleanUp, Lock, Storage, Store, ValueNotExists
 from xdist import is_xdist_controller
 
 x = (y for y in range(10))
@@ -18,8 +18,8 @@ x.close
 # TODO: type this better
 
 def shared_session_scope_fixture(
-    storage: Storage, lock: Lock, 
-    cache: Optional[Cache] = None,
+    storage: Store, lock: Optional[Lock], 
+    cache: Optional[Store] = None,
     clean_up: CleanUp = 'last'
     , **kwargs
 ):
@@ -51,7 +51,11 @@ def shared_session_scope_fixture(
         def wrapper(*args, **kwargs):
             fixture_values = {k: kwargs[k] for k in fixture_names}
             storage_key = storage.get_key(func.__qualname__, fixture_values)
-            resolved_lock = lock(storage_key) if isinstance(lock, Callable) else lock
+            if lock:
+                resolved_lock = lock(storage_key) if isinstance(lock, Callable) else lock
+            else:
+                resolved_lock = storage.lock(storage_key)
+
             cleanup_generator = None
 
             def _call():
@@ -80,10 +84,10 @@ def shared_session_scope_fixture(
                 if cache:
                     cache_key = cache.get_key(func.__qualname__, fixture_values)
                     try:
-                        data = cache.get(cache_key, fixture_values)
+                        data = cache.read(cache_key, fixture_values)
                     except KeyError:
                         data = call()
-                        cache.set(data, cache_key, fixture_values)
+                        cache.write(data, cache_key, fixture_values)
                 else:
                     data = call()
             yield data
