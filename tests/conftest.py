@@ -26,3 +26,11 @@ def pytest_collection_modifyitems(session: pytest.Session, config: pytest.Config
         item.keywords
 
 
+@pytest.fixture(scope='session')
+def fixture_a(request: pytest.FixtureRequest):
+    node = request.node
+    assert isinstance(node, pytest.Session)
+    items = node.perform_collect()
+    print(items)
+    assert len(list(items)) == 2
+    yield 'fixture1'

@@ -42,7 +42,7 @@ class Cache(Protocol, Generic[_T]):
     def get_key(self, func_qual_name: str, fixture_values: dict[str, Any]) -> str: ...
     def lock(self, key: str) -> AbstractContextManager: ...
 
-CleanUp: TypeAlias = Literal['first', 'last', 'all']
+CleanUp: TypeAlias = Literal['after', 'immediately']
 
 
 class Store(Protocol, Generic[_T]):

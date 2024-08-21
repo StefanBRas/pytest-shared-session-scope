@@ -1,6 +1,6 @@
 from pytest import FixtureRequest
 from typing import Any, TypedDict
-
+from _pytest.nodes import Function
 
 class _PytestRequestCacheFixtureValues(TypedDict):
     request: "FixtureRequest"

@@ -12,6 +12,9 @@ pytest = ">=7"
 filelock = ">=2"
 typing-extensions = ">=3.6.2"
 
+[tool.poetry.plugins.pytest11]
+pytest-shared-session-scope = "pytest_shared_session_scope.fixtures"
+
 
 [tool.poetry.group.dev.dependencies]
 ruff = "0.5.6"
