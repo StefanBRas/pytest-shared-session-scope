@@ -1,5 +1,4 @@
 import functools
-import time
 from contextlib import suppress
 import inspect
 from collections.abc import Callable
@@ -9,29 +8,23 @@ from typing import Optional
 import pytest
 
 from pytest_shared_session_scope.lock import FileLock
-from pytest_shared_session_scope.storage import JsonStorage
-from pytest_shared_session_scope.types import Cache, CleanUp, Lock, Storage, Store, ValueNotExists
-from xdist import is_xdist_controller
+from pytest_shared_session_scope.store import JsonStore
+from pytest_shared_session_scope.types import Lock, Store, ValueNotExists
+from xdist import is_xdist_worker
 
-from pytest_shared_session_scope.utils import count_yields
 
 tests_started = pytest.StashKey[list[str]]()
+
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_protocol(item, nextitem):
     item.config.stash.setdefault(tests_started, []).append(item.nodeid)
 
-def shared_session_scope_fixture(
-    storage: Store, lock: Optional[Lock], 
-    cache: Optional[Store] = None,
-    clean_up: CleanUp = 'after'
-    , **kwargs
-):
+
+def shared_session_scope_fixture(storage: Store, lock: Optional[Lock], **kwargs):
     # TODO: add docstrings here
     def _inner(func: Callable):
         fixture_names = set(storage.fixtures) | {"request"}
-        if cache:
-            fixture_names |= set(cache.fixtures)
 
         signature = inspect.signature(func)
         parameters = []
@@ -50,108 +43,115 @@ def shared_session_scope_fixture(
         parameters.extend(extra_params)
         func.__signature__ = signature.replace(parameters=parameters)  # pyright: ignore
 
-        @pytest.fixture(scope="session", **kwargs)
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            fixture_values = {k: kwargs[k] for k in fixture_names}
-            new_kwargs = {
-                k: v for k, v in kwargs.items() if k in signature.parameters.keys()
-            }
-            request = fixture_values["request"]
-            if is_xdist_controller(request):
-                res = func(*args, **new_kwargs)
-                if inspect.isgenerator(res):
-                    yield from res
-                else:
-                    return res
-                return
+        if inspect.isgeneratorfunction(func):
 
-            match count_yields(func):
-                case 0:
-                    is_generator = False
-                case 1:
-                    raise ValueError("blablabla")
-                case 2:
-                    is_generator = True
-                case _:
-                    raise ValueError("blablabla")
+            @pytest.fixture(scope="session", **kwargs)
+            @functools.wraps(func)
+            def wrapper_generator(*args, **kwargs):
+                fixture_values = {k: kwargs[k] for k in fixture_names}
+                new_kwargs = {
+                    k: v for k, v in kwargs.items() if k in signature.parameters.keys()
+                }
+                request = fixture_values["request"]
 
-            assert isinstance(request, pytest.FixtureRequest)
-
-            tests_using_fixture = []
-            for item in request.session.items:
-                if func.__name__ in item.fixturenames:
-                    tests_using_fixture.append(item.nodeid)
-
-            storage_key = storage.get_key(func.__qualname__, fixture_values)
-            if lock:
-                resolved_lock = lock(storage_key) if isinstance(lock, Callable) else lock
-            else:
-                resolved_lock = storage.lock(storage_key)
-
-            cleanup_generator = None
-
-            def _call():
-                nonlocal cleanup_generator
-                res = func(*args, **new_kwargs)
-                if inspect.isgenerator(res):
-                    cleanup_generator = res
-                    return next(res)
-                return res
-
-            def _call_with_storage():
-                try:
-                    return storage.read(storage_key, fixture_values)
-                except ValueNotExists:
-                    data = _call()
-                    storage.write(storage_key + ".testids", tests_using_fixture, fixture_values)
-                    return storage.write(storage_key, data, fixture_values)
-
-            def call():
-                if is_xdist_controller(request):
-                    return _call()
-                return _call_with_storage()
-
-            with resolved_lock:
-                if cache:
-                    cache_key = cache.get_key(func.__qualname__, fixture_values)
+                if not is_xdist_worker(request):  # Not running with xdist, early return
+                    res = func(*args, **new_kwargs)
+                    next(res)
+                    data = res.send(None)
+                    yield data
                     try:
-                        data = cache.read(cache_key, fixture_values)
-                    except KeyError:
-                        data = call()
-                        cache.write(data, cache_key, fixture_values)
+                        res.send("last")
+                        msg = "This generator should have been exhausted"
+                        raise AssertionError(msg)
+                    except StopIteration:
+                        return
+
+                assert isinstance(request, pytest.FixtureRequest)
+
+                tests_using_fixture = []
+                for item in request.session.items:
+                    if func.__name__ in item.fixturenames:
+                        tests_using_fixture.append(item.nodeid)
+
+                unique_id = f"{func.__module__}.{func.__qualname__}"
+                storage_key = storage.get_key(unique_id, fixture_values)
+                if lock:
+                    resolved_lock = (
+                        lock(storage_key) if isinstance(lock, Callable) else lock
+                    )
                 else:
-                    data = call()
+                    resolved_lock = storage.lock(storage_key)
 
-            yield data
-            if is_generator:
-                match clean_up:
-                    case "after":
-                        # Since only ONE worker ran the computation, the cleanup must be run in the same worker
-                        # because we cant start generators 
-                        with resolved_lock:
-                            tests_run_in_worker = request.config.stash[tests_started]
-                            tests_missing: set[str] = set(storage.read(storage_key + ".testids", fixture_values))
-                            tests_missing -= set(tests_run_in_worker)
-                            storage.write(storage_key + ".testids", list(tests_missing), fixture_values)
-                        if cleanup_generator: # This is the worker that ran the computation
-                            while tests_missing: # We must wait for other workers to finish test
-                                time.sleep(0.1)
-                                with resolved_lock:
-                                    if storage.read(storage_key + ".testids", fixture_values) == []:
-                                        break
-                            with suppress(StopIteration):
-                                next(cleanup_generator)
-                    case "immediately":
-                        if cleanup_generator:
-                            with suppress(StopIteration):
-                                next(cleanup_generator)
+                with resolved_lock:
+                    res = func(*args, **new_kwargs)
+                    next(res)
+                    try:
+                        data = storage.read(storage_key, fixture_values)
+                        also_data = res.send(data)
+                        assert data == also_data
+                    except ValueNotExists:
+                        data = res.send(None)
+                        storage.write(
+                            storage_key + ".testids",
+                            tests_using_fixture,
+                            fixture_values,
+                        )
+                        storage.write(storage_key, data, fixture_values)
 
-        return wrapper
+                yield data
+
+                with resolved_lock:
+                    tests_run_in_worker = request.config.stash[tests_started]
+                    tests_missing: set[str] = set(
+                        storage.read(storage_key + ".testids", fixture_values)
+                    )
+                    tests_missing -= set(tests_run_in_worker)
+                    if not tests_missing:
+                        storage.write(
+                            storage_key + ".testids",
+                            list(tests_missing),
+                            fixture_values,
+                        )
+                        with suppress(StopIteration):
+                            res.send(None)
+                    else:
+                        with suppress(StopIteration):
+                            res.send("last")
+
+            return wrapper_generator
+        else:
+            @pytest.fixture(scope="session", **kwargs)
+            @functools.wraps(func)
+            def wrapper_return(*args, **kwargs):
+                fixture_values = {k: kwargs[k] for k in fixture_names}
+                new_kwargs = {
+                    k: v for k, v in kwargs.items() if k in signature.parameters.keys()
+                }
+                request = fixture_values["request"]
+
+                if not is_xdist_worker(request):  # Not running with xdist, early return
+                    return func(*args, **new_kwargs)
+
+                unique_id = f"{func.__module__}.{func.__qualname__}"
+                storage_key = storage.get_key(unique_id, fixture_values)
+
+                if lock:
+                    resolved_lock = (
+                        lock(storage_key) if isinstance(lock, Callable) else lock
+                    )
+                else:
+                    resolved_lock = storage.lock(storage_key)
+
+                with resolved_lock:
+                    try:
+                        data = storage.read(storage_key, fixture_values)
+                    except ValueNotExists:
+                        data = func(*args, **new_kwargs)
+                    return data
+
+            return wrapper_return
 
     return _inner
 
 
-shared_json_scope_fixture = partial(
-    shared_session_scope_fixture, JsonStorage(), FileLock
-)
+shared_json_scope_fixture = partial(shared_session_scope_fixture, JsonStore(), FileLock)

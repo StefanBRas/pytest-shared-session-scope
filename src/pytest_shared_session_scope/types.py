@@ -3,59 +3,49 @@ from contextlib import AbstractContextManager
 from typing import Any, Generic, Literal, Protocol, TypeAlias, TypeVar
 
 
-_T = TypeVar("_T")
-
-
 class ValueNotExists(Exception): ...
-
-
-class Storage(Protocol, Generic[_T]):
-    fixtures: list[str]
-
-    def read(self, key: str, fixture_values: dict[str, Any]) -> _T: ...
-
-    """ Read a value from the storage. 
-
-    Raises:
-        ValueNotExists: If the key is not found in the storage.
-    """
-
-    def write(self, key: str, data: _T, fixture_values: dict[str, Any]) -> _T: ...
-    def get_key(self, func_qual_name: str, fixture_values: dict[str, Any]) -> str: ...
-    def lock(self, key: str) -> AbstractContextManager: ...
 
 Lock: TypeAlias = AbstractContextManager | Callable[[str], AbstractContextManager]
 
+CleanUp: TypeAlias = Literal['after']
 
-class Cache(Protocol, Generic[_T]):
-    fixtures: list[str]
-
-    def get(self, key: str, fixture_values: dict[str, Any]) -> _T: ...
-
-    """ Get a value from the cache. 
-
-    Raises:
-        KeyError: If the key is not found in the cache.
-    """
-
-    def set(self, value: _T, key: str, fixture_values: dict[str, Any]) -> _T: ...
-    def get_key(self, func_qual_name: str, fixture_values: dict[str, Any]) -> str: ...
-    def lock(self, key: str) -> AbstractContextManager: ...
-
-CleanUp: TypeAlias = Literal['after', 'immediately']
-
+_T = TypeVar("_T")
 
 class Store(Protocol, Generic[_T]):
-    fixtures: list[str]
 
-    def read(self, key: str, fixture_values: dict[str, Any]) -> _T: ...
+    @property
+    def fixtures(self) -> list[str]:
+        """ List of fixtures that the store needs. """
+        ...
+    def read(self, key: str, fixture_values: dict[str, Any]) -> _T:
+        """ Read a value from the storage. 
 
-    """ Read a value from the storage. 
+        Raises:
+            ValueNotExists: If the key is not found in the storage.
+        """
+        ...
+    def write(self, key: str, data: _T, fixture_values: dict[str, Any]) -> _T:
+        """ Write a value to the storage. """
+        ...
+    def get_key(self, identifier: str, fixture_values: dict[str, Any]) -> str:
+        """ Get the key for the storage. """
+        ...
+    def lock(self, key: str) -> AbstractContextManager:
+        """ Lock to ensure atomicity. """
+        ...
 
-    Raises:
-        ValueNotExists: If the key is not found in the storage.
-    """
 
-    def write(self, key: str, data: _T, fixture_values: dict[str, Any]) -> _T: ...
-    def get_key(self, func_qual_name: str, fixture_values: dict[str, Any]) -> str: ...
-    def lock(self, key: str) -> AbstractContextManager: ...
+_T = TypeVar("_T")
+
+class A(Protocol, Generic[_T]):
+    def get(self) -> _T: ...
+    def set(self, data: _T) -> None: ...
+
+def a(A): ...
+
+class B():
+    def get(self) -> int: ...
+    def set(self, data: int) -> None: ...
+
+b = B()
+a(b)

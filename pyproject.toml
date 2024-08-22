@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytest-shared-session-scope"
-version = "0.1.1"
+version = "0.0.1"
 description = ""
 authors = ["Stefan Rasmussen <stefan@bruhn.io>"]
 readme = "README.md"
@@ -17,11 +17,12 @@ pytest-shared-session-scope = "pytest_shared_session_scope.fixtures"
 
 
 [tool.poetry.group.dev.dependencies]
-ruff = "0.5.6"
+ruff = "~0.6.0"
 pytest-cov = "5.0.0"
 pytest-xdist = "3.6.1"
 
 # pyproject.toml
+pyright = "^1.1.377"
 [tool.pytest.ini_options]
 addopts = "-n auto"
 testpaths = ["tests"]

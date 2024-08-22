@@ -4,18 +4,17 @@ from pathlib import Path
 from typing import Any
 from filelock import FileLock as _FileLock
 
-from pytest_shared_session_scope.types import ValueNotExists
+from pytest_shared_session_scope.types import Store, ValueNotExists
 
 
-class LocalFileStorageMixin:
-    fixtures = ["tmp_path_factory"]
+class LocalFileStoreMixin:
+    @property
+    def fixtures(self) -> list[str]:
+        return ["tmp_path_factory"]
 
-    def exists(self, key: str, fixture_values: dict[str, Any]) -> bool:
-        return Path(key).exists()
-
-    def get_key(self, func_qual_name: str, fixture_values: dict[str, Any]) -> str:
+    def get_key(self, identifier: str, fixture_values: dict[str, Any]) -> str:
         root_tmp_dir = fixture_values["tmp_path_factory"].getbasetemp().parent
-        return str(root_tmp_dir / f"{func_qual_name}.json")
+        return str(root_tmp_dir / f"{identifier}.json")
 
     @contextmanager
     def lock(self, key: str):
@@ -23,7 +22,7 @@ class LocalFileStorageMixin:
             yield
 
 
-class JsonStorage(LocalFileStorageMixin):
+class JsonStore(LocalFileStoreMixin):
     def read(self, key: str, fixture_values: dict[str, Any]) -> Any:
         try:
             return json.loads(Path(key).read_text())
@@ -33,3 +32,10 @@ class JsonStorage(LocalFileStorageMixin):
     def write(self, key: str, data: Any, fixture_values: dict[str, Any]) -> Any:
         Path(key).write_text(json.dumps(data))
         return data
+
+x = JsonStore()
+
+def a(a: Store):
+    ...
+
+a(x)
