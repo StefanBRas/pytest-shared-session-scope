@@ -30,7 +30,7 @@ jobs:
 
     - name: Install Ruff 
       run: |
-        pipx install ruff == 0.6.2
+        pipx install ruff==0.6.2
 
     - name: Lint Test 
       run: |
