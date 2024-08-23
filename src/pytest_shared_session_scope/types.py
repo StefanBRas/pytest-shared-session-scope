@@ -5,7 +5,7 @@ from typing import Any, Generic, Literal, Protocol, TypeAlias, TypeVar
 
 class ValueNotExists(Exception): ...
 
-Lock: TypeAlias = AbstractContextManager | Callable[[str], AbstractContextManager]
+Lock: TypeAlias = Callable[[str], AbstractContextManager]
 
 CleanUp: TypeAlias = Literal['after']
 
@@ -24,9 +24,11 @@ class Store(Protocol, Generic[_T]):
             ValueNotExists: If the key is not found in the storage.
         """
         ...
-    def write(self, key: str, data: _T, fixture_values: dict[str, Any]) -> _T:
+
+    def write(self, key: str, data: _T, fixture_values: dict[str, Any]):
         """ Write a value to the storage. """
         ...
+
     def get_key(self, identifier: str, fixture_values: dict[str, Any]) -> str:
         """ Get the key for the storage. """
         ...
@@ -35,17 +37,3 @@ class Store(Protocol, Generic[_T]):
         ...
 
 
-_T = TypeVar("_T")
-
-class A(Protocol, Generic[_T]):
-    def get(self) -> _T: ...
-    def set(self, data: _T) -> None: ...
-
-def a(A): ...
-
-class B():
-    def get(self) -> int: ...
-    def set(self, data: int) -> None: ...
-
-b = B()
-a(b)

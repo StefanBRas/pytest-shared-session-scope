@@ -1,3 +1,5 @@
+from datetime import datetime
+
 
 def test_fixture_with_cleanup(fixture_with_cleanup):
     assert fixture_with_cleanup == 1
@@ -27,3 +29,6 @@ def test_fixture_with_return2(fixture_with_return):
 def test_fixture_with_return3(fixture_with_return):
     assert fixture_with_return == 1
 
+
+def test_fixture_with_serializtion(fixture_with_deserializor):
+    assert isinstance(fixture_with_deserializor, datetime)

@@ -21,21 +21,21 @@ class LocalFileStoreMixin:
         with _FileLock(key + ".lock"):
             yield
 
-
-class JsonStore(LocalFileStoreMixin):
-    def read(self, key: str, fixture_values: dict[str, Any]) -> Any:
+class FileStore(LocalFileStoreMixin):
+    def read(self, key: str, fixture_values: dict[str, Any]) -> str:
         try:
-            return json.loads(Path(key).read_text())
+            return Path(key).read_text()
         except FileNotFoundError:
             raise ValueNotExists
 
-    def write(self, key: str, data: Any, fixture_values: dict[str, Any]) -> Any:
-        Path(key).write_text(json.dumps(data))
-        return data
+    def write(self, key: str, data: str, fixture_values: dict[str, Any]):
+        Path(key).write_text(data)
 
-x = JsonStore()
 
-def a(a: Store):
-    ...
+class JsonStore(FileStore):
+    def read(self, key: str, fixture_values: dict[str, Any]) -> Any:
+        return json.loads(super().read(key, fixture_values))
 
-a(x)
+    def write(self, key: str, data: Any, fixture_values: dict[str, Any]):
+        json.dumps(super().write(key, data, fixture_values))
+
