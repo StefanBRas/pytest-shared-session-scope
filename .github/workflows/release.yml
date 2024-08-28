@@ -29,7 +29,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: wheels
-          path: "${{inputs.package}}/dist"
+          path: "dist"
 
   validate-tag:
     name: Validate tag
@@ -53,9 +53,9 @@ jobs:
         run: |
           # Switch to the commit we want to release
           git checkout ${{ inputs.sha }}
-          version=$(grep "version = " ${{inputs.package}}/pyproject.toml | sed -e 's/version = "\(.*\)"/\1/g')
+          version=$(grep "version = " pyproject.toml | sed -e 's/version = "\(.*\)"/\1/g')
           if [ "${{ inputs.tag }}" != "${version}" ]; then
-            echo "The input tag does not match the version from ${{inputs.package}}/pyproject.toml:" >&2
+            echo "The input tag does not match the version from pyproject.toml:" >&2
             echo "${{ inputs.tag }}" >&2
             echo "${version}" >&2
             exit 1
@@ -124,5 +124,5 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           draft: true
-          tag_name: "${{inputs.package}}-v${{ inputs.tag }}"
+          tag_name: "v${{ inputs.tag }}"
 
