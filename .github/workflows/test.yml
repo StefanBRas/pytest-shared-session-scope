@@ -28,16 +28,16 @@ jobs:
       with:
         python-version: 3.12
 
-    - name: Install Ruff 
+    - name: Install poetry
+      uses: abatilo/actions-poetry@v2
+
+    - name: Install dependencies
       run: |
-        pipx install ruff==0.6.2
+        poetry install 
 
     - name: Lint Test 
       run: |
         task lint
-
-    - name: Install poetry
-      uses: abatilo/actions-poetry@v2
 
     - name: Run tests 
       run: |

@@ -5,7 +5,7 @@ Session scoped fixture that is shared between all workers in a pytest-xdist run.
 ```python
 from pytest_shared_session_scope import shared_json_scope_fixture, CleanupToken
 
-@shared_json_scope_fixture() # This turns below function to a session scope fixture
+@shared_json_scope_fixture() # This turns below function into a session scope fixture
 def my_fixture():
     # First yields returns None if it hasn't been calculated yet and the value if it has
     initial = yield
@@ -13,7 +13,7 @@ def my_fixture():
         data = 123 # Do something expensive
     else: # This is a worker using the fixture after the first worker
         data = initial
-    token: CleanupToken = yield data # Second yield yield data to test and returns a token
+    token: CleanupToken = yield data # Second yield yields data to test and returns a token
     if token == CleanupToken.LAST:
       ... # This will only run in the last worker to finish
     else:
@@ -39,7 +39,7 @@ The double yield makes them different from normal pytest fixtures and can be con
 The implementation is a bit hacky - we need to modify the signature of functions to pass fixture values to the inner actual fixture.
 I'm also not entirely confident cleanup will work correctly in all cases.
 
-## Recipies
+## Recipes
 
 ### Non JSON serializable data
 
@@ -69,7 +69,7 @@ It's a common pattern to return functions from fixtures - for example to registe
 ```python
 import pytest
 
-@shared_json_scope_fixture(serialize=serialize, deserialize=deserialize)
+@shared_json_scope_fixture()
 def important_ids():
     return [1,2,3]
 
@@ -84,13 +84,12 @@ def cleanup_important_ids(important_ids):
     for id in ids_to_cleanup:
       print(f"Cleaning up {id}")
 
-def test_thing_with_ids(cleanup_important_ids, cleanup_important_ids):
-    for id in [1,2,3,4]:
+def test_thing_with_ids(important_ids, cleanup_important_ids):
+    for id in important_ids:
       # assert thing
       cleanup_important_ids(id)
 ```
 
-```
 ## How?
 
 The decorator is a generalization of the guide from the pytest-xdist docs of how to [make session scoped fixtures execute only once](https://pytest-xdist.readthedocs.io/en/stable/how-to.html#making-session-scoped-fixtures-execute-only-once) with the added feature of being able to run cleanup code in the last worker to finish. 
