@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytest-shared-session-scope"
-version = "0.0.1"
+version = "0.1.0"
 description = ""
 authors = ["Stefan Rasmussen <stefan@bruhn.io>"]
 readme = "README.md"
