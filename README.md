@@ -5,15 +5,12 @@ Session scoped fixture that is shared between all workers in a pytest-xdist run.
 ```python
 from pytest_shared_session_scope import shared_json_scope_fixture, CleanupToken
 
-@shared_json_scope_fixture() # This turns below function into a session scope fixture
+@shared_json_scope_fixture()
 def my_fixture():
-    # First yields returns None if it hasn't been calculated yet and the value if it has
-    initial = yield
-    if initial is None: # This is the first worker to run the fixture
+    data = yield
+    if data is None: # This is the first worker to run the fixture
         data = 123 # Do something expensive
-    else: # This is a worker using the fixture after the first worker
-        data = initial
-    token: CleanupToken = yield data # Second yield yields data to test and returns a token
+    token: CleanupToken = yield data # yields data to test
     if token == CleanupToken.LAST:
       ... # This will only run in the last worker to finish
     else:
@@ -62,6 +59,7 @@ def my_fixture_return():
     return datetime.now()
 
 ```
+
 
 ### Returning functions
 

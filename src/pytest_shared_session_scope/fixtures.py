@@ -6,7 +6,7 @@ from contextlib import suppress
 import inspect
 from collections.abc import Callable
 import json
-from typing import Iterable, TypeVar
+from typing import Any, Iterable, TypeVar
 from typing_extensions import Generator
 
 import pytest
@@ -22,6 +22,18 @@ _V = TypeVar("_V")
 
 def identity(v: _T) -> _T:
     return v
+
+
+def _send_first(generator: Generator, value: Any):
+    try:
+        return generator.send(value)
+    except StopIteration as e:
+        msg = (
+            "This generator should not have been exhausted. "
+            "Remember that pytest-shared-session-scope fixtures that yields "
+            "MUST yield exactly twice."
+        )
+        raise ValueError(msg) from e
 
 
 def _send_last(generator: Generator, token: CleanupToken | None):
@@ -115,7 +127,7 @@ def shared_session_scope_fixture(
                 if not is_xdist_worker(request):  # Not running with xdist, early return
                     res = func(*args, **new_kwargs)
                     next(res)
-                    data = res.send(None)
+                    data = _send_first(res, None)
                     yield data
                     _send_last(res, CleanupToken.LAST)
                     return
@@ -134,9 +146,9 @@ def shared_session_scope_fixture(
                     next(res)
                     try:
                         data = deserialize(store.read(store_identifier, fixture_values))
-                        res.send(data)
+                        _send_first(res, data)
                     except StoreValueNotExists:
-                        data = res.send(None)
+                        data = _send_first(res, None)
                         store.write(store_identifier, serialize(data), fixture_values)
                         with metadata_lock:
                             metadata_storage.write(

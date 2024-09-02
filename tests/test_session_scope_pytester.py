@@ -86,3 +86,10 @@ def test_serialize(pytester: Pytester, n: int, tmp_path: Path):
 def test_use_fixture_in_fixture(pytester: Pytester, n: int, tmp_path: Path):
     pytester.copy_example("test_use_fixture_in_pytest_fixture.py")
     pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path)).assert_outcomes(passed=3)
+
+
+def test_nice_err_msg(pytester: Pytester):
+    pytester.copy_example("test_nice_err_msg_on_single_yield.py")
+    result = pytester.runpytest("-n", str(2))
+    result.assert_outcomes(errors=1)
+    result.stdout.fnmatch_lines(["*ValueError*MUST yield exactly twice*"])
