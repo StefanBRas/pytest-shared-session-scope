@@ -17,7 +17,8 @@ from pytest_shared_session_scope.types import CleanupToken, Store, StoreValueNot
 from xdist import is_xdist_worker
 
 _T = TypeVar("_T")
-_V = TypeVar("_V")
+_Return = TypeVar("_Return")
+_Result = TypeVar("_Result")
 
 
 def identity(v: _T) -> _T:
@@ -72,8 +73,9 @@ def _add_fixture_to_signature(func, fixture_names: Iterable[str]):
 
 def shared_session_scope_fixture(
     store: Store[_T],
-    serialize: Callable[[_V], _T] = identity,
-    deserialize: Callable[[_T], _V] = identity,
+    parse: Callable[[_Return], _Result] = identity,
+    serialize: Callable[[_Return], _T] = identity,
+    deserialize: Callable[[_T], _Return] = identity,
     metadata_storage: Store[str] = FileStore(),
     **kwargs,
 ):
@@ -102,6 +104,7 @@ def shared_session_scope_fixture(
 
     Args:
         store: Store to save the fixture data.
+        parse: Function to parse the data before returning it to the test.
         serialize: Function to serialize the data before saving it to the store.
         deserialize: Function to deserialize the data after reading it from the store.
         metadata_storage: Store to save metadata about the current test run.
@@ -128,7 +131,7 @@ def shared_session_scope_fixture(
                     res = func(*args, **new_kwargs)
                     next(res)
                     data = _send_first(res, None)
-                    yield data
+                    yield parse(data)
                     _send_last(res, CleanupToken.LAST)
                     return
 
@@ -157,7 +160,7 @@ def shared_session_scope_fixture(
                                 fixture_values,
                             )
 
-                yield data
+                yield parse(data)
 
                 # We want to release the lock before calling the cleanup function
                 # so we use a flag here
@@ -195,7 +198,7 @@ def shared_session_scope_fixture(
                 request = fixture_values["request"]
 
                 if not is_xdist_worker(request):  # Not running with xdist, early return
-                    return func(*args, **new_kwargs)
+                    return parse(func(*args, **new_kwargs))
 
                 store_identifier = f"{func.__module__}.{func.__qualname__}"
                 store_lock = store.lock(store_identifier, fixture_values)
@@ -205,7 +208,7 @@ def shared_session_scope_fixture(
                         data = deserialize(store.read(store_identifier, fixture_values))
                     except StoreValueNotExists:
                         data = func(*args, **new_kwargs)
-                    return data
+                    return parse(data)
 
             return wrapper_return
 
@@ -213,8 +216,9 @@ def shared_session_scope_fixture(
 
 
 def shared_json_scope_fixture(
-    serialize: Callable[[_V], _T] = identity,
-    deserialize: Callable[[_T], _V] = identity,
+    parse: Callable[[_Return], _Result] = identity,
+    serialize: Callable[[_Return], _T] = identity,
+    deserialize: Callable[[_T], _Return] = identity,
     metadata_storage: Store[str] = FileStore(),
     **kwargs,
 ):
@@ -243,10 +247,13 @@ def shared_json_scope_fixture(
         ```
 
     Args:
+        parse: Function to parse the data before returning it to the test.
         serialize: Function to serialize the data before saving it to the store.
         deserialize: Function to deserialize the data after reading it from the store.
         metadata_storage: Store to save metadata about the current test run.
             This is necessary to determine which worker should do the cleanup.
         **kwargs: Additional arguments to pass to the @pytest.fixture.
     """
-    return shared_session_scope_fixture(JsonStore(), serialize, deserialize, metadata_storage, **kwargs)
+    return shared_session_scope_fixture(
+        JsonStore(), parse, serialize, deserialize, metadata_storage, **kwargs
+    )

@@ -19,10 +19,11 @@ def my_fixture():
 ```
 
 It differs from normal fixtures in two ways:
+- It cannot yield or return None
 - If it yields it must yield twice - once to optionally calculate the value, once to yield the value to the test
 - If it yields, a `CleanupToken` is send back in the second yield. This can be used to determine if the worker should do any cleanup.
 
-If the fixture "just" returns a value it works too without any modifications.
+If the fixture "just" returns a value it works too without any modifications (Except not being allow to return None).
 
 ## Why?
 
@@ -37,6 +38,24 @@ The implementation is a bit hacky - we need to modify the signature of functions
 I'm also not entirely confident cleanup will work correctly in all cases.
 
 ## Recipes
+
+### Yielding/Returning None
+
+`None` is used to indicate that the fixture should calculate the value. Therefore, the fixture cannot yield `None`. If you use the fixture for its side effects, you can just return any other value instead.
+```python
+from pytest_shared_session_scope import shared_json_scope_fixture
+from my_package import database
+
+@shared_json_scope_fixture()
+def my_fixture_return():
+    data = yield
+    if data is None:
+        database.start()
+        data = 1 # Can be anything (serializable), except None
+    token: CleanupToken = yield data
+    if token == CleanupToken.LAST:
+      database.stop()
+```
 
 ### Non JSON serializable data
 
@@ -60,6 +79,47 @@ def my_fixture_return():
 
 ```
 
+You might also want to parse it into something before returning it to the test.
+This can be useful when you want to yield/return a non-serializable object to the test, but still need to store it in a serializable format.
+
+```python
+def deserialize(value: str) -> dict:
+    return json.loads(value)
+
+def serialize(value: dict) -> str:
+    return json.dumps(value)
+
+class Connection:
+    def __init__(self, port: int):
+        self.port = port
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Self:
+        return cls(**data)
+
+@shared_session_scope_fixture(
+    store=FileStore(),
+    parse=Connection.from_dict,
+    serialize=serialize,
+    deserialize=deserialize,
+)
+def connection():
+    data = yield
+    if data is None:
+        data = {"port": 123}
+    yield data
+
+def test_connection(connection):
+    assert my_fixture_yield.port == 123
+```
+
+The general rules are:
+- The fixture should yield sufficient information (data) to create the object you want to use in the test
+- The `parse` function should take that data and from it create the object you want to use in the test
+- The `serialize` function should take data and return a type that can be saved to the store
+- The `deserialize` function should take the serialized data and return the data you want to parse
+
+In most cases, you don't have to care about this.
 
 ### Returning functions
 

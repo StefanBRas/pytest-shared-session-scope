@@ -27,7 +27,6 @@ def test_return(my_fixture_return):
 def test_yield(my_fixture_yield):
     assert isinstance(my_fixture_yield, datetime)
 
-
 def test_return_1(my_fixture_return):
     assert isinstance(my_fixture_return, datetime)
 
