@@ -1,5 +1,7 @@
 # Pytest Shared Session Fixture
 
+[![image](https://img.shields.io/pypi/v/pytest-shared-session-scope)](https://pypi.org/project/pytest-shared-session-scope/)
+
 Session scoped fixture that is shared between all workers in a pytest-xdist run.
 
 ```python
