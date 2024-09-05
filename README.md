@@ -114,7 +114,8 @@ def connection():
     yield data
 
 def test_connection(connection):
-    assert my_fixture_yield.port == 123
+    assert connection.port == 123
+    assert isinstance(connection, Connection)
 ```
 
 The general rules are:
