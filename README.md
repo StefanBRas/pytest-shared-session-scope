@@ -85,6 +85,8 @@ You might also want to parse it into something before returning it to the test.
 This can be useful when you want to yield/return a non-serializable object to the test, but still need to store it in a serializable format.
 
 ```python
+from pytest_shared_session_scope import shared_json_scope_fixture
+
 def deserialize(value: str) -> dict:
     return json.loads(value)
 
