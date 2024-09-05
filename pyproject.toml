@@ -38,7 +38,8 @@ ignore = ["D103"]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 [tool.ruff.lint.per-file-ignores]
-"!src/**.py" = ["D"] # Ignore `D` rules everywhere except for the `src/` directory.
+"pytester_examples/**.py" = ["D"]
+"tests/**.py" = ["D"]
 
 
 [build-system]

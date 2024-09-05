@@ -81,6 +81,11 @@ def test_serialize(pytester: Pytester, n: int, tmp_path: Path):
     pytester.copy_example("test_serializer.py")
     pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path)).assert_outcomes(passed=8)
 
+@pytest.mark.parametrize("n", [0, 2, 5])
+def test_parse(pytester: Pytester, n: int, tmp_path: Path):
+    pytester.copy_example("test_parse.py")
+    pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path)).assert_outcomes(passed=8)
+
 
 @pytest.mark.parametrize("n", [0, 2, 5])
 def test_use_fixture_in_fixture(pytester: Pytester, n: int, tmp_path: Path):
