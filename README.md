@@ -128,6 +128,7 @@ In most cases, you don't have to care about this.
 It's a common pattern to return functions from fixtures - for example to register data needed in the cleanup. Instead, use two fixtures - one to calculate the data and one to use it. But remember that the second fixture is run in each worker! So it won't cover all cases.
 ```python
 import pytest
+from pytest_shared_session_scope import shared_json_scope_fixture
 
 @shared_json_scope_fixture()
 def important_ids():
