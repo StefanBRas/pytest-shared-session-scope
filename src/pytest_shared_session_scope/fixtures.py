@@ -17,11 +17,9 @@ from pytest_shared_session_scope.types import CleanupToken, Store, StoreValueNot
 from xdist import is_xdist_worker
 
 _T = TypeVar("_T")
-_Return = TypeVar("_Return")
-_Result = TypeVar("_Result")
 
 
-def identity(v: _T) -> _T:
+def _identity(v: _T) -> _T:
     return v
 
 
@@ -72,10 +70,10 @@ def _add_fixture_to_signature(func, fixture_names: Iterable[str]):
 
 
 def shared_session_scope_fixture(
-    store: Store[_T],
-    parse: Callable[[_Return], _Result] = identity,
-    serialize: Callable[[_Return], _T] = identity,
-    deserialize: Callable[[_T], _Return] = identity,
+    store: Store,
+    parse: Callable = _identity,
+    serialize: Callable = _identity,
+    deserialize: Callable = _identity,
     metadata_storage: Store[str] = FileStore(),
     **kwargs,
 ):
@@ -216,9 +214,9 @@ def shared_session_scope_fixture(
 
 
 def shared_json_scope_fixture(
-    parse: Callable[[_Return], _Result] = identity,
-    serialize: Callable[[_Return], _T] = identity,
-    deserialize: Callable[[_T], _Return] = identity,
+    parse: Callable = _identity,
+    serialize: Callable = _identity,
+    deserialize: Callable = _identity,
     metadata_storage: Store[str] = FileStore(),
     **kwargs,
 ):
