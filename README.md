@@ -136,7 +136,7 @@ Mainly it needs to implement three methods:
 Usually you want to store the data on the local filesystem. There's a mixin for that: `LocalFileStoreMixin`. It has a helper method `_get_path` that returns a path to a file in a temporary directory and you just need to implement `read` and `write` methods. The store should be passed to the `shared_session_scope_fixture` decorator, which the `shared_json_scope_fixture` is just a wrapper around.
 Below is an example of a store that uses Polars to read and write parquet files. 
 
-```
+```python
 from typing import Any
 from pytest_shared_session_scope import shared_session_scope_fixture
 import polars as pl
