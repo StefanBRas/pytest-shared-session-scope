@@ -39,7 +39,7 @@ class FileStore(LocalFileStoreMixin):
         try:
             return path.read_text()
         except FileNotFoundError:
-            raise StoreValueNotExists
+            raise StoreValueNotExists()
 
     def write(self, identifier: str, data: str, fixture_values: dict[str, Any]):
         """Write data to a file."""

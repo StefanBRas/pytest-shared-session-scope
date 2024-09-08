@@ -5,16 +5,16 @@ from contextlib import AbstractContextManager
 from typing import Any, Generic, Protocol, TypeVar
 
 
-_T = TypeVar("_T")
-
-
 class StoreValueNotExists(Exception):
     """Raised when a value is not found in the storage."""
 
     ...
 
 
-class Store(Protocol, Generic[_T]):
+_StoreType = TypeVar("_StoreType")
+
+
+class Store(Protocol, Generic[_StoreType]):
     """Store protocol for sharing data across workers."""
 
     @property
@@ -22,7 +22,7 @@ class Store(Protocol, Generic[_T]):
         """List of fixtures that the store needs."""
         ...
 
-    def read(self, identifier: str, fixture_values: dict[str, Any]) -> _T:
+    def read(self, identifier: str, fixture_values: dict[str, Any]) -> _StoreType:
         """Read a value from the storage.
 
         Raises:
@@ -30,7 +30,7 @@ class Store(Protocol, Generic[_T]):
         """
         ...
 
-    def write(self, identifier: str, data: _T, fixture_values: dict[str, Any]):
+    def write(self, identifier: str, data: _StoreType, fixture_values: dict[str, Any]):
         """Write a value to the storage."""
         ...
 

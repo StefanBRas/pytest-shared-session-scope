@@ -10,20 +10,18 @@ from pytest_shared_session_scope import shared_json_scope_fixture, CleanupToken
 @shared_json_scope_fixture()
 def my_fixture():
     data = yield
-    if data is None: # This is the first worker to run the fixture
-        data = 123 # Do something expensive
-    token: CleanupToken = yield data # yields data to test
+    if data is None:
+        data = expensive_calculation()
+    token: CleanupToken = yield data
     if token == CleanupToken.LAST:
-      ... # This will only run in the last worker to finish
-    else:
-      ... # This will run in all workers except the last one
-    ... # This will run in all workers
+      clean_up(data)
 ```
 
 It differs from normal fixtures in two ways:
 - It cannot yield or return None
 - If it yields it must yield twice - once to optionally calculate the value, once to yield the value to the test
 - If it yields, a `CleanupToken` is send back in the second yield. This can be used to determine if the worker should do any cleanup.
+- The data needs to be serializable somehow. The default implementation uses the built-in `json.dumps/json.loads` but custom serialization can be used.
 
 If the fixture "just" returns a value it works too without any modifications (Except not being allow to return None).
 
@@ -125,6 +123,50 @@ The general rules are:
 - The `deserialize` function should take the serialized data and return the data you want to parse
 
 In most cases, you don't have to care about this.
+
+### Implementing and using a custom store
+
+The default stores saves data as string to a local filsystem. If you want to use a different store, you can implement your own. It needs to follow the protocol defined with `pytest_shared_session_scope.types.Store`.
+Mainly it needs to implement three methods:
+
+- `read` to read the data from the store
+- `write` to write the data to the store
+- `lock` to lock the store to ensure no race conditions.
+
+Usually you want to store the data on the local filesystem. There's a mixin for that: `LocalFileStoreMixin`. It has a helper method `_get_path` that returns a path to a file in a temporary directory and you just need to implement `read` and `write` methods. The store should be passed to the `shared_session_scope_fixture` decorator, which the `shared_json_scope_fixture` is just a wrapper around.
+Below is an example of a store that uses Polars to read and write parquet files. 
+
+```
+from typing import Any
+from pytest_shared_session_scope import shared_session_scope_fixture
+import polars as pl
+
+from pytest_shared_session_scope.store import LocalFileStoreMixin
+from pytest_shared_session_scope.types import StoreValueNotExists
+
+
+class PolarsStore(LocalFileStoreMixin):
+    def read(self, identifier: str, fixture_values: dict[str, Any]) -> pl.DataFrame:
+        path = self._get_path(identifier, fixture_values["tmp_path_factory"])
+        try:
+            return pl.read_parquet(path)
+        except FileNotFoundError:
+            raise StoreValueNotExists()
+
+    def write(self, identifier: str, data: pl.DataFrame, fixture_values: dict[str, Any]):
+        path = self._get_path(identifier, fixture_values["tmp_path_factory"])
+        data.write_parquet(path)
+
+
+@shared_session_scope_fixture(PolarsStore())
+def my_fixture():
+    data = yield
+    if data is None:
+        data = pl.DataFrame({"a": [1, 2, 3]})
+    yield data
+```
+
+Attentive readers will notice that this could also be achieved with the default `FileStore` or even the `shared_json_scope_fixture` by creating clever serialization and deserialization functions. However here it's probably simpler to just use a custom store. Implementing this store with `deserialize`, `serialize` and `parse` is left up as an exercise for the reader.
 
 ### Returning functions
 

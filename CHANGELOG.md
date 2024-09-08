@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+- Remove fancy generic typing.
+- Renamed generic `_T` to `_StoreType`.
 
 ## [0.2.0]
 
