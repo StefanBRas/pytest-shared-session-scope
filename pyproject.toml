@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pytest-shared-session-scope"
-version = "0.2.0"
+version = "0.2.1"
 description = "Pytest session-scoped fixture that works with xdist"
 authors = ["Stefan Rasmussen <stefan@bruhn.io>"]
 readme = "README.md"
