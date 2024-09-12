@@ -196,6 +196,28 @@ def test_thing_with_ids(important_ids, cleanup_important_ids):
       cleanup_important_ids(id)
 ```
 
+### Using with cache
+
+Pytest has a built-in cache that can be used to store data between runs. This can be useful to avoid recalculating data between runs. 
+
+```python
+from pytest_shared_session_scope.fixtures import shared_json_scope_fixture
+
+@shared_json_scope_fixture()
+def my_fixture(pytestconfig):
+    data = yield
+    if data is None:
+        data = pytestconfig.cache.get("example/value", None)
+        if data is None:
+            data = {"hey": "data"}
+            pytestconfig.cache.set("example/value", data)
+    yield data
+
+
+def test(my_fixture):
+    assert my_fixture == {"hey": "data"}
+```
+
 ## How?
 
 The decorator is a generalization of the guide from the pytest-xdist docs of how to [make session scoped fixtures execute only once](https://pytest-xdist.readthedocs.io/en/stable/how-to.html#making-session-scoped-fixtures-execute-only-once) with the added feature of being able to run cleanup code in the last worker to finish. 
