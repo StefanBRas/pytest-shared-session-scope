@@ -1,6 +1,6 @@
-from pytest_shared_session_scope.fixtures import shared_json_scope_fixture
+from pytest_shared_session_scope.fixtures import shared_session_scope_json
 
-@shared_json_scope_fixture()
+@shared_session_scope_json()
 def my_fixture(pytestconfig):
     data = yield
     if data is None:

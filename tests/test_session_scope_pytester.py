@@ -99,6 +99,7 @@ def test_custom_store(pytester: Pytester, n: int, tmp_path: Path):
     pytester.copy_example("test_custom_store.py")
     pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path)).assert_outcomes(passed=3)
 
+
 @pytest.mark.parametrize("n", [0, 2, 3])
 def test_cache(pytester: Pytester, n: int, tmp_path: Path):
     pytester.copy_example("test_cache.py")

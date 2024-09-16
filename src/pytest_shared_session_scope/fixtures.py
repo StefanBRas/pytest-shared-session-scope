@@ -213,7 +213,7 @@ def shared_session_scope_fixture(
     return _inner
 
 
-def shared_json_scope_fixture(
+def shared_session_scope_json(
     parse: Callable = _identity,
     serialize: Callable = _identity,
     deserialize: Callable = _identity,
@@ -224,13 +224,13 @@ def shared_json_scope_fixture(
 
     Example:
         ```python
-        from pytest_shared_session_scope import shared_json_scope_fixture, JsonStore, CleanupToken
+        from pytest_shared_session_scope import shared_session_scope_json, JsonStore, CleanupToken
 
 
         def expensive_calculation():
             return 123
 
-        @shared_json_scope_fixture()
+        @shared_session_scope_json()
         def my_fixture():
         initial = yield
         if initial is None:

@@ -1,11 +1,11 @@
-from pytest_shared_session_scope import shared_json_scope_fixture
+from pytest_shared_session_scope import shared_session_scope_json
 from datetime import datetime
 
 
 pytest_plugins = ["pytester"]
 
 
-@shared_json_scope_fixture()
+@shared_session_scope_json()
 def fixture_with_yield():
     data = yield
     if data is None:
@@ -13,7 +13,7 @@ def fixture_with_yield():
     yield data
 
 
-@shared_json_scope_fixture()
+@shared_session_scope_json()
 def fixture_with_cleanup():
     data = yield
     if data is None:
@@ -24,7 +24,7 @@ def fixture_with_cleanup():
         print("do stuff only when last")
 
 
-@shared_json_scope_fixture(deserialize=lambda x: datetime.fromisoformat(x), serialize=lambda x: x.isoformat())
+@shared_session_scope_json(deserialize=lambda x: datetime.fromisoformat(x), serialize=lambda x: x.isoformat())
 def fixture_with_deserializor():
     data = yield
     if data is None:
@@ -32,6 +32,6 @@ def fixture_with_deserializor():
     yield data
 
 
-@shared_json_scope_fixture()
+@shared_session_scope_json()
 def fixture_with_return():
     return 1

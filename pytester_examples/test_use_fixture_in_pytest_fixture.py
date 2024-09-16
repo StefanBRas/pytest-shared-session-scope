@@ -1,7 +1,7 @@
 import pytest
-from pytest_shared_session_scope import shared_json_scope_fixture
+from pytest_shared_session_scope import shared_session_scope_json
 
-@shared_json_scope_fixture()
+@shared_session_scope_json()
 def important_ids():
     return [1,2,3]
 
