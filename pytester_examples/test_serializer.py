@@ -1,4 +1,4 @@
-from pytest_shared_session_scope import shared_json_scope_fixture
+from pytest_shared_session_scope import shared_session_scope_json
 from datetime import datetime
 
 
@@ -10,11 +10,11 @@ def deserialize(value: str) -> datetime:
     return datetime.fromisoformat(value)
 
 
-@shared_json_scope_fixture(serialize=serialize, deserialize=deserialize)
+@shared_session_scope_json(serialize=serialize, deserialize=deserialize)
 def my_fixture_return():
     return datetime.now()
 
-@shared_json_scope_fixture(serialize=serialize, deserialize=deserialize)
+@shared_session_scope_json(serialize=serialize, deserialize=deserialize)
 def my_fixture_yield():
     data = yield
     if data is None:

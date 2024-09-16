@@ -5,9 +5,9 @@
 Session scoped fixture that is shared between all workers in a pytest-xdist run.
 
 ```python
-from pytest_shared_session_scope import shared_json_scope_fixture, CleanupToken
+from pytest_shared_session_scope import shared_session_scope_json, CleanupToken
 
-@shared_json_scope_fixture()
+@shared_session_scope_json()
 def my_fixture():
     data = yield
     if data is None:
@@ -43,10 +43,10 @@ I'm also not entirely confident cleanup will work correctly in all cases.
 
 `None` is used to indicate that the fixture should calculate the value. Therefore, the fixture cannot yield `None`. If you use the fixture for its side effects, you can just return any other value instead.
 ```python
-from pytest_shared_session_scope import shared_json_scope_fixture
+from pytest_shared_session_scope import shared_session_scope_json
 from my_package import database
 
-@shared_json_scope_fixture()
+@shared_session_scope_json()
 def my_fixture_return():
     data = yield
     if data is None:
@@ -64,7 +64,7 @@ each fixture, you can use the `serialize` and `deserialize` arguments
 
 
 ```python
-from pytest_shared_session_scope import shared_json_scope_fixture
+from pytest_shared_session_scope import shared_session_scope_json
 from datetime import datetime
 
 def serialize(value: datetime) -> str:
@@ -73,7 +73,7 @@ def serialize(value: datetime) -> str:
 def deserialize(value: str) -> datetime:
     return datetime.fromisoformat(value)
 
-@shared_json_scope_fixture(serialize=serialize, deserialize=deserialize)
+@shared_session_scope_json(serialize=serialize, deserialize=deserialize)
 def my_fixture_return():
     return datetime.now()
 
@@ -83,7 +83,7 @@ You might also want to parse it into something before returning it to the test.
 This can be useful when you want to yield/return a non-serializable object to the test, but still need to store it in a serializable format.
 
 ```python
-from pytest_shared_session_scope import shared_json_scope_fixture
+from pytest_shared_session_scope import shared_session_scope_json
 
 def deserialize(value: str) -> dict:
     return json.loads(value)
@@ -133,7 +133,7 @@ Mainly it needs to implement three methods:
 - `write` to write the data to the store
 - `lock` to lock the store to ensure no race conditions.
 
-Usually you want to store the data on the local filesystem. There's a mixin for that: `LocalFileStoreMixin`. It has a helper method `_get_path` that returns a path to a file in a temporary directory and you just need to implement `read` and `write` methods. The store should be passed to the `shared_session_scope_fixture` decorator, which the `shared_json_scope_fixture` is just a wrapper around.
+Usually you want to store the data on the local filesystem. There's a mixin for that: `LocalFileStoreMixin`. It has a helper method `_get_path` that returns a path to a file in a temporary directory and you just need to implement `read` and `write` methods. The store should be passed to the `shared_session_scope_fixture` decorator, which the `shared_session_scope_json` is just a wrapper around.
 Below is an example of a store that uses Polars to read and write parquet files. 
 
 ```python
@@ -166,16 +166,16 @@ def my_fixture():
     yield data
 ```
 
-Attentive readers will notice that this could also be achieved with the default `FileStore` or even the `shared_json_scope_fixture` by creating clever serialization and deserialization functions. However here it's probably simpler to just use a custom store. Implementing this store with `deserialize`, `serialize` and `parse` is left up as an exercise for the reader.
+Attentive readers will notice that this could also be achieved with the default `FileStore` or even the `shared_session_scope_json` by creating clever serialization and deserialization functions. However here it's probably simpler to just use a custom store. Implementing this store with `deserialize`, `serialize` and `parse` is left up as an exercise for the reader.
 
 ### Returning functions
 
 It's a common pattern to return functions from fixtures - for example to register data needed in the cleanup. Instead, use two fixtures - one to calculate the data and one to use it. But remember that the second fixture is run in each worker! So it won't cover all cases.
 ```python
 import pytest
-from pytest_shared_session_scope import shared_json_scope_fixture
+from pytest_shared_session_scope import shared_session_scope_json
 
-@shared_json_scope_fixture()
+@shared_session_scope_json()
 def important_ids():
     return [1,2,3]
 
@@ -201,9 +201,9 @@ def test_thing_with_ids(important_ids, cleanup_important_ids):
 Pytest has a built-in cache that can be used to store data between runs. This can be useful to avoid recalculating data between runs. 
 
 ```python
-from pytest_shared_session_scope.fixtures import shared_json_scope_fixture
+from pytest_shared_session_scope.fixtures import shared_session_scope_json
 
-@shared_json_scope_fixture()
+@shared_session_scope_json()
 def my_fixture(pytestconfig):
     data = yield
     if data is None:
