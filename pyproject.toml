@@ -1,27 +1,28 @@
-[tool.poetry]
+[project]
 name = "pytest-shared-session-scope"
 version = "0.2.1"
 description = "Pytest session-scoped fixture that works with xdist"
-authors = ["Stefan Rasmussen <stefan@bruhn.io>"]
+authors = [{ name = "Stefan Rasmussen", email = "opensource@bruhn.io" }]
 readme = "README.md"
-packages = [{include = "pytest_shared_session_scope", from = "src"}]
+requires-python = ">=3.10"
+dependencies = [
+  "filelock >= 3.16.0",
+  "typing-extensions >= 3.6.2",
+  "pytest >= 7.0.0",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.10"
-pytest = ">=7"
-filelock = ">=2"
-typing-extensions = ">=3.6.2"
-
-[tool.poetry.plugins.pytest11]
+[project.entry-points.pytest11]
 pytest-shared-session-scope = "pytest_shared_session_scope.plugin"
 
 
-[tool.poetry.group.dev.dependencies]
-ruff = "~0.6.0"
-pytest-cov = "5.0.0"
-pytest-xdist = "3.6.1"
-pyright = "^1.1.377"
-polars = "^1.6.0" # just test_custom_store.py 
+[tool.uv]
+dev-dependencies = [
+  "ruff == 0.6.4",
+  "pytest-cov == 5.0.0",
+  "pytest-xdist == 3.6.1",
+  "pyright == 1.1.381",
+  "polars == 1.6.0",
+]
 
 [tool.pytest.ini_options]
 addopts = "-n auto"
@@ -38,13 +39,12 @@ ignore = ["D103"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
 [tool.ruff.lint.per-file-ignores]
 "pytester_examples/**.py" = ["D"]
 "tests/**.py" = ["D"]
 
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-
+requires = ["hatchling"]
+build-backend = "hatchling.build"
