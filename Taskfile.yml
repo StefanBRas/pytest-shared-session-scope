@@ -1,42 +1,35 @@
 version: "3"
 
 vars:
-  POETRY: poetry run
-  NOX: "{{.POETRY}} nox"
-  REQ_LOCATION: .test_requirements.txt
+  UV: uv run
+  PACKAGE: "pytest-shared-session-scope"
 
 tasks:
   format:
     cmds:
-      - "{{.POETRY}} ruff format tests src"
+      - "{{.UV}} ruff format tests src"
   lint:
     cmds:
-      - "{{.POETRY}} ruff check tests src"
+      - "{{.UV}} ruff check tests src"
+      - "{{.UV}} pyright src"
   test:
     cmds:
-      - "{{.POETRY}} pytest tests --cov=src"
+      - >
+        {{.UV}}
+        --python {{.PYTHON_VERSION | default 3.12}}
+        --with "pytest>{{.PYTEST_VERSION | default 8}}"
+        {{ .EXTRA_UV_ARGS}}
+        pytest tests --cov=src
+        {{ .EXTRA_PYTEST_ARGS}}
+      # Test that we can import it when installed as a package 
+      - uv run --with {{.PACKAGE}} --refresh-package {{.PACKAGE}} --no-project -- python -c "import pytest_shared_session_scope"
   test-all:
     cmds:
-      - "rm -rf ./dist"
-      - "poetry export -f requirements.txt --with dev > {{.REQ_LOCATION}}"
-      - "poetry build -f wheel"
-      - task: test_versions
-  test_version:
-    # Make this somehow work from the commandline too
-    internal: True
-    env:
-      VIRTUAL_ENV: "./venvs/venv{{ .VERSION }}"
-    cmds:
-      - echo {{.ITEM}}
-      - uv venv $VIRTUAL_ENV --python {{.VERSION}}
-      - uv pip install -r {{.REQ_LOCATION}} ./dist/*.whl
-      - $VIRTUAL_ENV/bin/pytest tests
-  test_versions:
-    internal: true
-    deps:
-      - for: ["3.10", "3.11", "3.12"]
-        task: test_version
+      - for:
+          matrix:
+            PYTEST_VERSION: ["8", "7"]
+            PYTHON_VERSION: ["3.12", "3.11", "3.10"]
+        task: test
         vars:
-          VERSION: "{{.ITEM}}"
-    cmds:
-      - rm {{.REQ_LOCATION}}
+          PYTHON_VERSION: "{{.ITEM.PYTHON_VERSION}}"
+          PYTEST_VERSION: "{{.ITEM.PYTEST_VERSION}}"

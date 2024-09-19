@@ -35,7 +35,7 @@ def _send_first(generator: Generator, value: Any):
         raise ValueError(msg) from e
 
 
-def _send_last(generator: Generator, token: CleanupToken | None):
+def _send_last(generator: Generator[Any, CleanupToken | None, Any], token: CleanupToken | None):
     with suppress(StopIteration):
         generator.send(token)
         msg = "This generator should have been exhausted"
