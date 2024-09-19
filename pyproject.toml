@@ -1,6 +1,6 @@
 [project]
 name = "pytest-shared-session-scope"
-version = "0.2.1"
+version = "0.3.0"
 description = "Pytest session-scoped fixture that works with xdist"
 authors = [{ name = "Stefan Rasmussen", email = "opensource@bruhn.io" }]
 readme = "README.md"
