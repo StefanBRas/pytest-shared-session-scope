@@ -17,11 +17,11 @@ pytest-shared-session-scope = "pytest_shared_session_scope.plugin"
 
 [tool.uv]
 dev-dependencies = [
-  "ruff == 0.6.4",
   "pytest-cov == 5.0.0",
   "pytest-xdist == 3.6.1",
   "pyright == 1.1.381",
   "polars == 1.6.0",
+  "ruff==0.6.7",
 ]
 
 [tool.pytest.ini_options]
