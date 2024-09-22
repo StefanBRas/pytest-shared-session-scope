@@ -1,20 +1,19 @@
 from pathlib import Path
+import re
 import pytest
 from pytest import Pytester
 import json
 
 
-def copy_example(pytester: Pytester, test_id: str, tmp_path: Path):
+def _add_test_fixtures(conftest_path: Path, tmp_path: Path):
     """Copy the example to a temporary directory and return the path
 
     Adds a fixture called "reuse" to the conftest.py file that returns the path to the results directory
     making it easier for tests to save results to be asserted on.
     """
-    path = pytester.copy_example(test_id)
     result_dir = get_output_dir(tmp_path)
-    conftest = path / "conftest.py"
     try:
-        content = conftest.read_text()
+        content = conftest_path.read_text()
     except FileNotFoundError:
         content = ""
     mocked_tmp_dir_factory = f"""
@@ -31,14 +30,59 @@ def results_dir():
 
 {content}
 """
-    conftest.write_text(mocked_tmp_dir_factory)
+    conftest_path.write_text(mocked_tmp_dir_factory)
+
+
+def copy_example(pytester: Pytester, test_id: str, tmp_path: Path):
+    """Copy the example to a temporary directory and return the path
+
+    Adds a fixture called "reuse" to the conftest.py file that returns the path to the results directory
+    making it easier for tests to save results to be asserted on.
+    """
+    path = pytester.copy_example(test_id)
+    _add_test_fixtures(path / "conftest.py", tmp_path)
     return path
+
+
+def copy_example_from_markdown(markdown_path: Path, pytester: Pytester, test_id: str, tmp_path: Path):
+    markdown_content = markdown_path.read_text().splitlines()
+    code_block = ""
+    block_start = [i for i, line in enumerate(markdown_content) if f"doctest:{test_id}" in line][0] + 1
+    assert markdown_content[block_start].startswith("```python")
+    for line in markdown_content[block_start + 1 :]:
+        if line == "```":
+            break
+        code_block += line + "\n"
+    print(code_block)
+    test_dir_path = pytester.makepyfile(**{f"test_{test_id}": code_block})
+    _add_test_fixtures(test_dir_path.parent / "conftest.py", tmp_path)
+
+
+def copy_example_from_readme(pytester: Pytester, test_id: str, tmp_path: Path):
+    markdown_path = Path(__file__).parent.parent / "README.md"
+    return copy_example_from_markdown(markdown_path, pytester, test_id, tmp_path)
 
 
 def get_output_dir(path: Path) -> Path:
     result_path = path / ".results"
     result_path.mkdir(exist_ok=True)
     return result_path
+
+
+def _get_tests_from_readme():
+    markdown_path = Path(__file__).parent.parent / "README.md"
+    markdown_content = markdown_path.read_text()
+    return re.findall(r"doctest:([\w-]+)", markdown_content)
+
+
+@pytest.mark.parametrize("test_id", _get_tests_from_readme())
+def test_readme(tmp_path, pytester: Pytester, test_id: str):
+    copy_example_from_readme(pytester, test_id, tmp_path)
+    result = pytester.runpytest("-n", "2", "--basetemp", str(tmp_path))
+    outcomes = result.parseoutcomes()
+    assert outcomes.get("passed", 0) > 0
+    assert outcomes.get("failed", 0) == 0
+    assert outcomes.get("errors", 0) == 0
 
 
 @pytest.mark.parametrize("n", [0, 2, 3])
@@ -84,28 +128,8 @@ def test_serialize(pytester: Pytester, n: int, tmp_path: Path):
 
 
 @pytest.mark.parametrize("n", [0, 2, 3])
-def test_parse(pytester: Pytester, n: int, tmp_path: Path):
-    pytester.copy_example("test_parse.py")
-    pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path)).assert_outcomes(passed=8)
-
-
-@pytest.mark.parametrize("n", [0, 2, 3])
 def test_use_fixture_in_fixture(pytester: Pytester, n: int, tmp_path: Path):
     pytester.copy_example("test_use_fixture_in_pytest_fixture.py")
-    pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path)).assert_outcomes(passed=3)
-
-
-@pytest.mark.parametrize("n", [0, 2, 3])
-def test_custom_store(pytester: Pytester, n: int, tmp_path: Path):
-    pytester.copy_example("test_custom_store.py")
-    pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path)).assert_outcomes(passed=3)
-
-
-@pytest.mark.parametrize("n", [0, 2, 3])
-def test_cache(pytester: Pytester, n: int, tmp_path: Path):
-    pytester.copy_example("test_cache.py")
-    pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path)).assert_outcomes(passed=3)
-    # TODO: assert that we actually use the cache
     pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path)).assert_outcomes(passed=3)
 
 
