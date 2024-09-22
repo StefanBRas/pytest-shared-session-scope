@@ -44,7 +44,7 @@ I'm also not entirely confident cleanup will work correctly in all cases.
 The default store uses `json.dumps/json.loads` which cannot handle all objects. Instead of implementing a custom store for
 each fixture, you can use the `serialize` and `deserialize` arguments
 
-
+<!--- doctest:non-serializable --->
 ```python
 from pytest_shared_session_scope import shared_session_scope_json
 from datetime import datetime
@@ -59,13 +59,20 @@ def deserialize(value: str) -> datetime:
 def my_fixture_return():
     return datetime.now()
 
+def test_datetime(my_fixture_return):
+    assert isinstance(my_fixture_return, datetime)
+
 ```
 
 You might also want to parse it into something before returning it to the test.
 This can be useful when you want to yield/return a non-serializable object to the test, but still need to store it in a serializable format.
 
+<!--- doctest:non-serializable-parse --->
 ```python
-from pytest_shared_session_scope import shared_session_scope_json, SetupToken
+from pytest_shared_session_scope import shared_session_scope_fixture, SetupToken
+from pytest_shared_session_scope.store import FileStore 
+
+import json
 
 def deserialize(value: str) -> dict:
     return json.loads(value)
@@ -78,7 +85,7 @@ class Connection:
         self.port = port
 
     @classmethod
-    def from_dict(cls, data: dict) -> Self:
+    def from_dict(cls, data: dict):
         return cls(**data)
 
 @shared_session_scope_fixture(
@@ -118,6 +125,7 @@ Mainly it needs to implement three methods:
 Usually you want to store the data on the local filesystem. There's a mixin for that: `LocalFileStoreMixin`. It has a helper method `_get_path` that returns a path to a file in a temporary directory and you just need to implement `read` and `write` methods. The store should be passed to the `shared_session_scope_fixture` decorator, which the `shared_session_scope_json` is just a wrapper around.
 Below is an example of a store that uses Polars to read and write parquet files. 
 
+<!--- doctest:custom-store --->
 ```python
 from typing import Any
 from pytest_shared_session_scope import shared_session_scope_fixture, SetupToken
@@ -146,6 +154,9 @@ def my_fixture():
     if data is SetupToken.FIRST:
         data = pl.DataFrame({"a": [1, 2, 3]})
     yield data
+
+def test_polars(my_fixture):
+  assert isinstance(my_fixture, pl.DataFrame)
 ```
 
 Attentive readers will notice that this could also be achieved with the default `FileStore` or even the `shared_session_scope_json` by creating clever serialization and deserialization functions. However here it's probably simpler to just use a custom store. Implementing this store with `deserialize`, `serialize` and `parse` is left up as an exercise for the reader.
@@ -153,6 +164,8 @@ Attentive readers will notice that this could also be achieved with the default 
 ### Returning functions
 
 It's a common pattern to return functions from fixtures - for example to register data needed in the cleanup. Instead, use two fixtures - one to calculate the data and one to use it. But remember that the second fixture is run in each worker! So it won't cover all cases.
+
+<!--- doctest:returning-functions --->
 ```python
 import pytest
 from pytest_shared_session_scope import shared_session_scope_json
@@ -182,6 +195,7 @@ def test_thing_with_ids(important_ids, cleanup_important_ids):
 
 Pytest has a built-in cache that can be used to store data between runs. This can be useful to avoid recalculating data between runs. 
 
+<!--- doctest:cache --->
 ```python
 from pytest_shared_session_scope import shared_session_scope_json, SetupToken
 
