@@ -2,6 +2,7 @@ from typing_extensions import Self
 
 from pytest_shared_session_scope.fixtures import shared_session_scope_fixture
 from pytest_shared_session_scope.store import FileStore
+from pytest_shared_session_scope.types import SetupToken
 import json
 
 
@@ -40,7 +41,7 @@ def my_fixture_return():
 )
 def my_fixture_yield():
     data = yield
-    if data is None:
+    if data is SetupToken.FIRST:
         data = {"port": 123}
     yield data
 

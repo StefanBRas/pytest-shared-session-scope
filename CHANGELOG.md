@@ -2,8 +2,9 @@
 
 ## [Unreleased]
 
-## [0.3.1]
-- Fix: Remove dependency on ruff.
+## [0.4.0]
+- Changed `CleanupToken` to be just `Enum` instead of `str, Enum`.
+- BREAKING: The first yield not returns a `SetupToken` instead of `None` to signal that a worker should calculate the value.
 
 ## [0.3.0]
 - BREAKING: Rename `shared_json_session_scope` to `shared_session_scope_json`

@@ -1,6 +1,8 @@
 from pytest_shared_session_scope import shared_session_scope_json
 from datetime import datetime
 
+from pytest_shared_session_scope.types import SetupToken
+
 
 def serialize(value: datetime) -> str:
     return value.isoformat()
@@ -17,7 +19,7 @@ def my_fixture_return():
 @shared_session_scope_json(serialize=serialize, deserialize=deserialize)
 def my_fixture_yield():
     data = yield
-    if data is None:
+    if data is SetupToken.FIRST:
         data = datetime.now()
     yield data.now()
 

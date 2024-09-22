@@ -65,15 +65,16 @@ def test_with_cleanup(pytester: Pytester, n: int, tmp_path):
         results[path.name] = json.loads(path.read_text())
 
     # Exactly one worker should calculate the value
-    initial = {worker_id: data["time"] for worker_id, data in results.items() if data["initial"] is None}
-    assert len(initial) == 1
+    got_setup_token = {
+        worker_id: data["time"] for worker_id, data in results.items() if data["is_setup_token"]
+    }
+    assert len(got_setup_token) == 1
 
     # Exactly one worker should do cleanup
-    last = {worker_id: data["time"] for worker_id, data in results.items() if data["token"] == "last"}
-    assert len(last) == 1
-    # All other workers should get nothing as token
-    not_last = {worker_id: data["time"] for worker_id, data in results.items() if data["token"] is None}
-    assert len(not_last) == max(n - 1, 0)
+    got_cleanup_token = {
+        worker_id: data["time"] for worker_id, data in results.items() if data["is_cleanup_token"]
+    }
+    assert len(got_cleanup_token) == 1
 
 
 @pytest.mark.parametrize("n", [0, 2, 3])

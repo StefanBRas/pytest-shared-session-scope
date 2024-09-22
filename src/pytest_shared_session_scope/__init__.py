@@ -3,6 +3,7 @@
 from pytest_shared_session_scope.types import (
     Store as Store,
     CleanupToken as CleanupToken,
+    SetupToken as SetupToken,
     StoreValueNotExists as StoreValueNotExists,
 )
 
