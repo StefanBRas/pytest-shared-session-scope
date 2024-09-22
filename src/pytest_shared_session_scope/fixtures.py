@@ -13,7 +13,7 @@ import pytest
 
 from pytest_shared_session_scope._types import tests_started
 from pytest_shared_session_scope.store import FileStore, JsonStore
-from pytest_shared_session_scope.types import CleanupToken, Store, StoreValueNotExists
+from pytest_shared_session_scope.types import CleanupToken, SetupToken, Store, StoreValueNotExists
 from xdist import is_xdist_worker
 
 _T = TypeVar("_T")
@@ -94,7 +94,7 @@ def shared_session_scope_fixture(
         else:
             data = initial
         token: CleanupToken = yield data
-        if token == CleanupToken.last:
+        if token is CleanupToken.last:
             ... # Cleanup that should only happen once
         ... # Do cleanup that should happend for all workers here
 
@@ -128,7 +128,7 @@ def shared_session_scope_fixture(
                 if not is_xdist_worker(request):  # Not running with xdist, early return
                     res = func(*args, **new_kwargs)
                     next(res)
-                    data = _send_first(res, None)
+                    data = _send_first(res, SetupToken.FIRST)
                     yield parse(data)
                     _send_last(res, CleanupToken.LAST)
                     return
@@ -149,7 +149,7 @@ def shared_session_scope_fixture(
                         data = deserialize(store.read(store_identifier, fixture_values))
                         _send_first(res, data)
                     except StoreValueNotExists:
-                        data = _send_first(res, None)
+                        data = _send_first(res, SetupToken.FIRST)
                         store.write(store_identifier, serialize(data), fixture_values)
                         with metadata_lock:
                             metadata_storage.write(
@@ -238,7 +238,7 @@ def shared_session_scope_json(
         else:
             data = initial
         token: CleanupToken = yield data
-        if token == CleanupToken.last:
+        if token is CleanupToken.last:
             ... # Cleanup that should only happen once
         ... # Do cleanup that should happend for all workers here
 

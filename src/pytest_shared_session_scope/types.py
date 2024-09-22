@@ -1,6 +1,6 @@
 """Common types used in the package."""
 
-from enum import Enum
+from enum import Enum, auto
 from contextlib import AbstractContextManager
 from typing import Any, Generic, Protocol, TypeVar
 
@@ -39,7 +39,13 @@ class Store(Protocol, Generic[_StoreType]):
         ...
 
 
-class CleanupToken(str, Enum):
-    """Token that is send back to the fixture after last yield."""
+class SetupToken(Enum):
+    """Token that is send back to the fixture in first yield."""
 
-    LAST = "last"
+    FIRST = auto()
+
+
+class CleanupToken(Enum):
+    """Token that is send back to the fixture in last yield."""
+
+    LAST = auto()

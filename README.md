@@ -5,25 +5,25 @@
 Session scoped fixture that is shared between all workers in a pytest-xdist run.
 
 ```python
-from pytest_shared_session_scope import shared_session_scope_json, CleanupToken
+from pytest_shared_session_scope import shared_session_scope_json, CleanupToken, SetupToken
 
 @shared_session_scope_json()
 def my_fixture():
     data = yield
-    if data is None:
+    if data is SetupToken.FIRST:
         data = expensive_calculation()
     token: CleanupToken = yield data
-    if token == CleanupToken.LAST:
+    if token is CleanupToken.LAST:
       clean_up(data)
 ```
 
 It differs from normal fixtures in two ways:
-- It cannot yield or return None
 - If it yields it must yield twice - once to optionally calculate the value, once to yield the value to the test
+- If it yields, a `SetupToken` or calculated data is send back in the first yield. This can be used to determine if the worker should do any the calulation or it has already been done.
 - If it yields, a `CleanupToken` is send back in the second yield. This can be used to determine if the worker should do any cleanup.
 - The data needs to be serializable somehow. The default implementation uses the built-in `json.dumps/json.loads` but custom serialization can be used.
 
-If the fixture "just" returns a value it works too without any modifications (Except not being allow to return None).
+If the fixture "just" returns a value it works too without any modifications.
 
 ## Why?
 
@@ -38,24 +38,6 @@ The implementation is a bit hacky - we need to modify the signature of functions
 I'm also not entirely confident cleanup will work correctly in all cases.
 
 ## Recipes
-
-### Yielding/Returning None
-
-`None` is used to indicate that the fixture should calculate the value. Therefore, the fixture cannot yield `None`. If you use the fixture for its side effects, you can just return any other value instead.
-```python
-from pytest_shared_session_scope import shared_session_scope_json
-from my_package import database
-
-@shared_session_scope_json()
-def my_fixture_return():
-    data = yield
-    if data is None:
-        database.start()
-        data = 1 # Can be anything (serializable), except None
-    token: CleanupToken = yield data
-    if token == CleanupToken.LAST:
-      database.stop()
-```
 
 ### Non JSON serializable data
 
@@ -83,7 +65,7 @@ You might also want to parse it into something before returning it to the test.
 This can be useful when you want to yield/return a non-serializable object to the test, but still need to store it in a serializable format.
 
 ```python
-from pytest_shared_session_scope import shared_session_scope_json
+from pytest_shared_session_scope import shared_session_scope_json, SetupToken
 
 def deserialize(value: str) -> dict:
     return json.loads(value)
@@ -107,12 +89,12 @@ class Connection:
 )
 def connection():
     data = yield
-    if data is None:
+    if data is SetupToken.FIRST:
         data = {"port": 123}
     yield data
 
 def test_connection(connection):
-    assert connection.port == 123
+    assert connection.port is 123
     assert isinstance(connection, Connection)
 ```
 
@@ -138,7 +120,7 @@ Below is an example of a store that uses Polars to read and write parquet files.
 
 ```python
 from typing import Any
-from pytest_shared_session_scope import shared_session_scope_fixture
+from pytest_shared_session_scope import shared_session_scope_fixture, SetupToken
 import polars as pl
 
 from pytest_shared_session_scope.store import LocalFileStoreMixin
@@ -161,7 +143,7 @@ class PolarsStore(LocalFileStoreMixin):
 @shared_session_scope_fixture(PolarsStore())
 def my_fixture():
     data = yield
-    if data is None:
+    if data is SetupToken.FIRST:
         data = pl.DataFrame({"a": [1, 2, 3]})
     yield data
 ```
@@ -201,12 +183,12 @@ def test_thing_with_ids(important_ids, cleanup_important_ids):
 Pytest has a built-in cache that can be used to store data between runs. This can be useful to avoid recalculating data between runs. 
 
 ```python
-from pytest_shared_session_scope.fixtures import shared_session_scope_json
+from pytest_shared_session_scope import shared_session_scope_json, SetupToken
 
 @shared_session_scope_json()
 def my_fixture(pytestconfig):
     data = yield
-    if data is None:
+    if data is SetupToken.FIRST:
         data = pytestconfig.cache.get("example/value", None)
         if data is None:
             data = {"hey": "data"}

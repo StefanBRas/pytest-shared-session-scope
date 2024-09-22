@@ -3,7 +3,7 @@ from pytest_shared_session_scope import shared_session_scope_fixture
 import polars as pl
 
 from pytest_shared_session_scope.store import LocalFileStoreMixin
-from pytest_shared_session_scope.types import StoreValueNotExists
+from pytest_shared_session_scope.types import StoreValueNotExists, SetupToken
 
 
 class PolarsStore(LocalFileStoreMixin):
@@ -22,7 +22,7 @@ class PolarsStore(LocalFileStoreMixin):
 @shared_session_scope_fixture(PolarsStore())
 def my_fixture():
     data = yield
-    if data is None:
+    if data is SetupToken.FIRST:
         data = pl.DataFrame({"a": [1, 2, 3]})
     yield data
 

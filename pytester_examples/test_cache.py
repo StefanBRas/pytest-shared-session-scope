@@ -1,9 +1,9 @@
-from pytest_shared_session_scope.fixtures import shared_session_scope_json
+from pytest_shared_session_scope.fixtures import shared_session_scope_json, SetupToken
 
 @shared_session_scope_json()
 def my_fixture(pytestconfig):
     data = yield
-    if data is None:
+    if data is SetupToken.FIRST:
         data = pytestconfig.cache.get("example/value", None)
         if data is None:
             data = {"hey": "data"}
