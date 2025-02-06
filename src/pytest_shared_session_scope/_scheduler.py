@@ -187,27 +187,28 @@ class FixedScheduling:
         assert self.collection
         node_to_test_id = self.node_to_test_id
         assert node_to_test_id is not None
-        for type_, matchers in [
-            ("exact", self.exact_test_names),
-            ("literal", self.literal_test_names),
-            ("re", self.re_test_names),
+
+        def exact_match_fn(x, y):
+            return x == y
+
+        def literal_match_fn(x, y):
+            return x in y
+
+        def re_match_fn(x, y):
+            return re.match(y, x) is not None
+
+        for type_, matchers, fn in [
+            ("exact", self.exact_test_names, exact_match_fn),
+            ("literal", self.literal_test_names, literal_match_fn),
+            ("re", self.re_test_names, re_match_fn),
         ]:
             match type_:
                 case "exact":
                     matchers = self.exact_test_names
-
-                    def fn(x, y):
-                        return x == y
                 case "literal":
                     matchers = self.literal_test_names
-
-                    def fn(x, y):
-                        return x in y
                 case "re":
                     matchers = self.re_test_names
-
-                    def fn(x, y):
-                        return re.match(y, x) is not None
                 case _:
                     msg = f"Unknown matcher type {type_}"
                     raise ValueError(msg)

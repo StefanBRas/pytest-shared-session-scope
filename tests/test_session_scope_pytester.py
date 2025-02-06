@@ -53,7 +53,6 @@ def copy_example_from_markdown(markdown_path: Path, pytester: Pytester, test_id:
         if line == "```":
             break
         code_block += line + "\n"
-    print(code_block)
     test_dir_path = pytester.makepyfile(**{f"test_{test_id}": code_block})
     _add_test_fixtures(test_dir_path.parent / "conftest.py", tmp_path)
 

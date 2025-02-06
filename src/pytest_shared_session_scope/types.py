@@ -8,8 +8,6 @@ from typing import Any, Generic, Protocol, TypeVar
 class StoreValueNotExists(Exception):
     """Raised when a value is not found in the storage."""
 
-    ...
-
 
 _StoreType = TypeVar("_StoreType")
 
