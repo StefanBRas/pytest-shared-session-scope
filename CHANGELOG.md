@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Make fixture that does cleanup also save missing test (which is then an empty set). Should make no runtime in supported use cases.
+
 ## [0.4.0]
 - Changed `CleanupToken` to be just `Enum` instead of `str, Enum`.
 - BREAKING: The first yield now returns a `SetupToken` instead of `None` to signal that a worker should calculate the value.
