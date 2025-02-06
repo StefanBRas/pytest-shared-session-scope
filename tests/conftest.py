@@ -21,9 +21,8 @@ def fixture_with_cleanup():
     if data is SetupToken.FIRST:
         data = 1
     token = yield data
-    print("doing stuff")
     if token is CleanupToken.LAST:
-        print("do stuff only when last")
+        pass
 
 
 @shared_session_scope_json(deserialize=lambda x: datetime.fromisoformat(x), serialize=lambda x: x.isoformat())

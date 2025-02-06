@@ -4,8 +4,19 @@
 
 Session scoped fixture that is shared between all workers in a pytest-xdist run.
 
+<!--- doctest:main --->
 ```python
 from pytest_shared_session_scope import shared_session_scope_json, CleanupToken, SetupToken
+
+def expensive_calculation():
+  return 123
+
+def clean_up(data):
+  print(f"Cleaning up {data}")
+
+@shared_session_scope_json()
+def my_fixture_return():
+    return expensive_calculation()
 
 @shared_session_scope_json()
 def my_fixture():
@@ -15,6 +26,12 @@ def my_fixture():
     token: CleanupToken = yield data
     if token is CleanupToken.LAST:
       clean_up(data)
+
+def test_return(my_fixture_return):
+    assert my_fixture_return == 123
+
+def test(my_fixture):
+    assert my_fixture == 123
 ```
 
 It differs from normal fixtures in two ways:
@@ -36,6 +53,11 @@ This is a special case of the more general pytest pitfall of thinking that if so
 The double yield makes them different from normal pytest fixtures and can be confusing.
 The implementation is a bit hacky - we need to modify the signature of functions to pass fixture values to the inner actual fixture.
 I'm also not entirely confident cleanup will work correctly in all cases.
+
+## Known limitations
+
+- Does not work correctly with the '-x' option or any option that makes it stop before running all tests.
+- Does not work with tests that dynamically get a fixture value using `request.getfixturevalue()`
 
 ## Recipes
 

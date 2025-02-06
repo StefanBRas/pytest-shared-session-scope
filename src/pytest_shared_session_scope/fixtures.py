@@ -172,13 +172,16 @@ def shared_session_scope_fixture(
                         json.loads(metadata_storage.read(metadata_identifier, fixture_values))
                     )
                     tests_missing -= set(tests_run_in_worker)
+                    print(f"The following tests are missing: {tests_missing}")
                     is_last = not tests_missing
-                    if not is_last:
-                        metadata_storage.write(
-                            metadata_identifier,
-                            json.dumps(list(tests_missing)),
-                            fixture_values,
-                        )
+                    # if not is_last:
+                    # TODO: The fixture to close shouldn't need to write here
+                    # But there are issue with getfixturevalue
+                    metadata_storage.write(
+                        metadata_identifier,
+                        json.dumps(list(tests_missing)),
+                        fixture_values,
+                    )
 
                 if is_last:
                     _send_last(res, CleanupToken.LAST)

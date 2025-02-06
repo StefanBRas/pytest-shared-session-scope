@@ -14,7 +14,7 @@ def _add_test_fixtures(conftest_path: Path, tmp_path: Path):
     result_dir = get_output_dir(tmp_path)
     try:
         content = conftest_path.read_text()
-    except FileNotFoundError:
+    except (FileNotFoundError, NotADirectoryError):
         content = ""
     mocked_tmp_dir_factory = f"""
 
@@ -65,7 +65,7 @@ def copy_example_from_readme(pytester: Pytester, test_id: str, tmp_path: Path):
 
 def get_output_dir(path: Path) -> Path:
     result_path = path / ".results"
-    result_path.mkdir(exist_ok=True)
+    result_path.mkdir(exist_ok=True, parents=True)
     return result_path
 
 
@@ -138,3 +138,54 @@ def test_nice_err_msg(pytester: Pytester):
     result = pytester.runpytest("-n", str(2))
     result.assert_outcomes(errors=1)
     result.stdout.fnmatch_lines(["*ValueError*MUST yield exactly twice*"])
+
+
+@pytest.mark.parametrize("n", [0, pytest.param(2, marks=pytest.mark.xfail(reason="Issue #31"))])
+def test_fail_fast(pytester: Pytester, n: int, tmp_path):
+    # Test that we correctly do cleanup when using -x
+    copy_example(pytester, "fail_fast", tmp_path)
+    res = pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path), "-x", "-vvv")
+    assert res.parseoutcomes()["failed"] == 1
+    assert res.parseoutcomes()["passed"] < 6
+    # TODO: should also shows skipped, but the schedulor doesn't support that.
+
+    results = [p.name for p in get_output_dir(tmp_path).iterdir()]
+
+    should_not_have_been_run = [name for name in results if "SHOULD_NOT_RUN" in name]
+
+    assert should_not_have_been_run == []
+
+    # Exactly one worker should calculate the value
+    got_setup_token = [name for name in results if name.endswith("start")]
+    assert len(got_setup_token) == (n or 1)
+
+    got_cleanup_token = [name for name in results if name.endswith("CleanupToken.LAST")]
+    assert len(got_cleanup_token) == 1
+
+
+@pytest.mark.parametrize("n", [0, pytest.param(2, marks=pytest.mark.xfail(reason="Issue #31"))])
+def test_getfixturevalue(pytester: Pytester, n: int, tmp_path):
+    copy_example(pytester, "getfixturevalue", tmp_path)
+    res = pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path), "-vvv", "-s")
+    res.assert_outcomes(passed=6)
+
+    results = [p.name for p in get_output_dir(tmp_path).iterdir()]
+    got_setup_token = [name for name in results if name.endswith("start")]
+    assert len(got_setup_token) == (n or 1)
+
+    got_cleanup_token = [name for name in results if name.endswith("CleanupToken.LAST")]
+    assert len(got_cleanup_token) == 1
+
+
+@pytest.mark.parametrize("n", [0, 2])
+def test_parameterize_fixture(pytester: Pytester, n: int, tmp_path):
+    copy_example(pytester, "fixture_params", tmp_path)
+    res = pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path), "-vvv")
+    res.assert_outcomes(passed=12)
+
+    results = [p.name for p in get_output_dir(tmp_path).iterdir()]
+    got_setup_token = [name for name in results if name.endswith("start")]
+    assert len(got_setup_token) == (n or 1)
+
+    got_cleanup_token = [name for name in results if name.endswith("CleanupToken.LAST")]
+    assert len(got_cleanup_token) == 1
