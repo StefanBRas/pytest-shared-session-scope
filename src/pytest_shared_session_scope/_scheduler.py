@@ -1,12 +1,10 @@
 # Lets you predetermine which tests run on which workers
 from collections import defaultdict
-from copy import deepcopy
-import enum
 from itertools import chain
 
 from xdist.workermanage import WorkerController
 from xdist.workermanage import parse_spec_config
-from typing import Sequence, assert_never
+from typing import Sequence
 import pytest
 import re
 
