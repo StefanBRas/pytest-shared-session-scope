@@ -12,7 +12,7 @@ from typing_extensions import Generator
 import pytest
 
 from pytest_shared_session_scope._types import tests_started
-from pytest_shared_session_scope.store import FileStore, JsonStore
+from pytest_shared_session_scope.store import FileStore, JsonStore, PickleStore
 from pytest_shared_session_scope.types import CleanupToken, SetupToken, Store, StoreValueNotExists
 from xdist import is_xdist_worker
 
@@ -256,4 +256,52 @@ def shared_session_scope_json(
     """
     return shared_session_scope_fixture(
         JsonStore(), parse, serialize, deserialize, metadata_storage, **kwargs
+    )
+
+
+def shared_session_scope_pickle(
+    parse: Callable = _identity,
+    serialize: Callable = _identity,
+    deserialize: Callable = _identity,
+    metadata_storage: Store[str] = FileStore(),
+    **kwargs,
+):
+    """Create a session scope fixture that is shared among all workers using pickle storage.
+
+    Example:
+        ```python
+        from pytest_shared_session_scope import shared_session_scope_pickle, CleanupToken
+
+
+        class MyClass:
+            def __init__(self, value):
+                self.value = value
+
+        def expensive_calculation():
+            return MyClass(123)
+
+        @shared_session_scope_pickle()
+        def my_fixture():
+        initial = yield
+        if initial is None:
+            object_instance = expensive_calculation()
+        else:
+            object_instance = initial
+        token: CleanupToken = yield object_instance
+        if token is CleanupToken.last:
+            ... # Cleanup that should only happen once
+        ... # Do cleanup that should happend for all workers here
+
+        ```
+
+    Args:
+        parse: Function to parse the data before returning it to the test.
+        serialize: Function to serialize the data before saving it to the store.
+        deserialize: Function to deserialize the data after reading it from the store.
+        metadata_storage: Store to save metadata about the current test run.
+            This is necessary to determine which worker should do the cleanup.
+        **kwargs: Additional arguments to pass to the @pytest.fixture.
+    """
+    return shared_session_scope_fixture(
+        PickleStore(), parse, serialize, deserialize, metadata_storage, **kwargs
     )

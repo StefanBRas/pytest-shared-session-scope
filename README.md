@@ -63,8 +63,29 @@ I'm also not entirely confident cleanup will work correctly in all cases.
 
 ### Non JSON serializable data
 
-The default store uses `json.dumps/json.loads` which cannot handle all objects. Instead of implementing a custom store for
-each fixture, you can use the `serialize` and `deserialize` arguments
+The default store uses `json.dumps/json.loads` which cannot handle all objects. For arbitrary objects, you can use `shared_session_scope_pickle` which uses Python's pickle module:
+
+<!--- doctest:pickle --->
+```python
+from pytest_shared_session_scope import shared_session_scope_pickle, SetupToken
+
+class CustomObject:
+    def __init__(self, value):
+        self.value = value
+
+@shared_session_scope_pickle()
+def my_fixture():
+    object_instance = yield
+    if object_instance is SetupToken.FIRST:
+        object_instance = CustomObject(42)
+    yield object_instance
+
+def test_custom_object(my_fixture):
+    assert isinstance(my_fixture, CustomObject)
+    assert my_fixture.value == 42
+```
+
+Alternatively, you can use the `serialize` and `deserialize` arguments with `shared_session_scope_json`:
 
 <!--- doctest:non-serializable --->
 ```python

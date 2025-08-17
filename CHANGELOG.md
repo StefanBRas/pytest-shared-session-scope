@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Add `shared_session_scope_pickle` that uses `pickle` for de/serialization.
+Make fixture that does cleanup also save missing test (which is then an empty set). Should make no runtime in supported use cases.
 - Make fixture that does cleanup also save missing test (which is then an empty set). Should make no runtime in supported use cases.
 
 ## [0.4.0]
