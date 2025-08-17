@@ -12,8 +12,8 @@ from typing_extensions import Generator
 import pytest
 
 from pytest_shared_session_scope._types import tests_started
-from pytest_shared_session_scope.store import FileStore, JsonStore
-from pytest_shared_session_scope.types import CleanupToken, Store, StoreValueNotExists
+from pytest_shared_session_scope.store import FileStore, JsonStore, PickleStore
+from pytest_shared_session_scope.types import CleanupToken, SetupToken, Store, StoreValueNotExists
 from xdist import is_xdist_worker
 
 _T = TypeVar("_T")
@@ -94,7 +94,7 @@ def shared_session_scope_fixture(
         else:
             data = initial
         token: CleanupToken = yield data
-        if token == CleanupToken.last:
+        if token is CleanupToken.last:
             ... # Cleanup that should only happen once
         ... # Do cleanup that should happend for all workers here
 
@@ -128,7 +128,7 @@ def shared_session_scope_fixture(
                 if not is_xdist_worker(request):  # Not running with xdist, early return
                     res = func(*args, **new_kwargs)
                     next(res)
-                    data = _send_first(res, None)
+                    data = _send_first(res, SetupToken.FIRST)
                     yield parse(data)
                     _send_last(res, CleanupToken.LAST)
                     return
@@ -149,7 +149,7 @@ def shared_session_scope_fixture(
                         data = deserialize(store.read(store_identifier, fixture_values))
                         _send_first(res, data)
                     except StoreValueNotExists:
-                        data = _send_first(res, None)
+                        data = _send_first(res, SetupToken.FIRST)
                         store.write(store_identifier, serialize(data), fixture_values)
                         with metadata_lock:
                             metadata_storage.write(
@@ -173,12 +173,14 @@ def shared_session_scope_fixture(
                     )
                     tests_missing -= set(tests_run_in_worker)
                     is_last = not tests_missing
-                    if not is_last:
-                        metadata_storage.write(
-                            metadata_identifier,
-                            json.dumps(list(tests_missing)),
-                            fixture_values,
-                        )
+                    # TODO: The fixture that closes shouldn't need to write here
+                    # But there are issue with getfixturevalue.
+                    # if not is_last:
+                    metadata_storage.write(
+                        metadata_identifier,
+                        json.dumps(list(tests_missing)),
+                        fixture_values,
+                    )
 
                 if is_last:
                     _send_last(res, CleanupToken.LAST)
@@ -238,7 +240,7 @@ def shared_session_scope_json(
         else:
             data = initial
         token: CleanupToken = yield data
-        if token == CleanupToken.last:
+        if token is CleanupToken.last:
             ... # Cleanup that should only happen once
         ... # Do cleanup that should happend for all workers here
 
@@ -254,4 +256,52 @@ def shared_session_scope_json(
     """
     return shared_session_scope_fixture(
         JsonStore(), parse, serialize, deserialize, metadata_storage, **kwargs
+    )
+
+
+def shared_session_scope_pickle(
+    parse: Callable = _identity,
+    serialize: Callable = _identity,
+    deserialize: Callable = _identity,
+    metadata_storage: Store[str] = FileStore(),
+    **kwargs,
+):
+    """Create a session scope fixture that is shared among all workers using pickle storage.
+
+    Example:
+        ```python
+        from pytest_shared_session_scope import shared_session_scope_pickle, CleanupToken
+
+
+        class MyClass:
+            def __init__(self, value):
+                self.value = value
+
+        def expensive_calculation():
+            return MyClass(123)
+
+        @shared_session_scope_pickle()
+        def my_fixture():
+        initial = yield
+        if initial is None:
+            object_instance = expensive_calculation()
+        else:
+            object_instance = initial
+        token: CleanupToken = yield object_instance
+        if token is CleanupToken.last:
+            ... # Cleanup that should only happen once
+        ... # Do cleanup that should happend for all workers here
+
+        ```
+
+    Args:
+        parse: Function to parse the data before returning it to the test.
+        serialize: Function to serialize the data before saving it to the store.
+        deserialize: Function to deserialize the data after reading it from the store.
+        metadata_storage: Store to save metadata about the current test run.
+            This is necessary to determine which worker should do the cleanup.
+        **kwargs: Additional arguments to pass to the @pytest.fixture.
+    """
+    return shared_session_scope_fixture(
+        PickleStore(), parse, serialize, deserialize, metadata_storage, **kwargs
     )

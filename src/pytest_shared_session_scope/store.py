@@ -1,5 +1,6 @@
 """Stores for sharing data between pytest sessions."""
 
+import pickle
 from contextlib import contextmanager
 import json
 from pathlib import Path
@@ -56,3 +57,22 @@ class JsonStore(FileStore):
     def write(self, identifier: str, data: Any, fixture_values: dict[str, Any]):
         """Write data to a file as json using json.dumps."""
         super().write(identifier, json.dumps(data), fixture_values)
+
+
+class PickleStore(LocalFileStoreMixin):
+    """Store that reads and writes binary data using the builtin pickle module."""
+
+    def read(self, identifier: str, fixture_values: dict[str, Any]) -> str:
+        """Read data from a file."""
+        path = self._get_path(identifier, fixture_values["tmp_path_factory"])
+        try:
+            with open(path, "rb") as f:
+                return pickle.load(f)
+        except FileNotFoundError:
+            raise StoreValueNotExists()
+
+    def write(self, identifier: str, data: str, fixture_values: dict[str, Any]):
+        """Write data to a file."""
+        path = self._get_path(identifier, fixture_values["tmp_path_factory"])
+        with open(path, "wb") as f:
+            pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)

@@ -9,17 +9,26 @@ tasks:
     cmds:
       - "{{.UV}} ruff format tests src"
   lint:
+    deps:
+      - lint-pyright
+      - lint-ruff
+  lint-pyright:
+    internal: true
+    cmds:
+      - "{{.UV}} pyright src"
+  lint-ruff:
+    internal: true
     cmds:
       - "{{.UV}} ruff check tests src"
-      - "{{.UV}} pyright src"
   test:
     cmds:
       - >
         {{.UV}}
+        --frozen
         --python {{.PYTHON_VERSION | default 3.12}}
         --with "pytest>{{.PYTEST_VERSION | default 8}}"
         {{ .EXTRA_UV_ARGS}}
-        pytest tests --cov=src
+        pytest tests
         {{ .EXTRA_PYTEST_ARGS}}
       # Test that we can import it when installed as a package 
       - uv run --with {{.PACKAGE}} --refresh-package {{.PACKAGE}} --no-project -- python -c "import pytest_shared_session_scope"
