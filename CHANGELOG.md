@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+## [0.5.1]
+- Internal: Fix xdist import in scheduler. Only used in testing, 
+
 ## [0.5.0]
 - Add `shared_session_scope_pickle` that uses `pickle` for de/serialization.
 Make fixture that does cleanup also save missing test (which is then an empty set). Should make no runtime in supported use cases.
