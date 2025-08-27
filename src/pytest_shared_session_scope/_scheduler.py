@@ -3,7 +3,12 @@ from collections import defaultdict
 from itertools import chain
 
 from xdist.workermanage import WorkerController
-from xdist.workermanage import parse_spec_config
+
+try:
+    from xdist.workermanage import parse_tx_spec_config
+except ImportError:  # xdist < 3.7.0
+    from xdist.workermanage import parse_spec_config as parse_tx_spec_config  # type: ignore
+
 from typing import Sequence
 import pytest
 import re
@@ -19,7 +24,7 @@ class FixedScheduling:
         exhaustive: bool = True,
         all_matchers_must_match: bool = True,
     ) -> None:
-        self.numnodes = len(parse_spec_config(config))
+        self.numnodes = len(parse_tx_spec_config(config))
         self._nodes: list[WorkerController] = []
         self.registered_collections: dict[WorkerController, list[str]] = {}
         self.collection: list[str] | None = None
