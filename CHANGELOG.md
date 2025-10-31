@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+- Add pytest-xdist as dependency.
 - Fix parameterized fixtures overwriting each other `shared_session_scope_json`.
 
 ## [0.5.1]

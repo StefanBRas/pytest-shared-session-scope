@@ -9,6 +9,7 @@ dependencies = [
   "filelock >= 3.16.0",
   "typing-extensions >= 3.6.2",
   "pytest >= 7.0.0",
+  "pytest-xdist >= 2.0.0",
 ]
 
 [project.entry-points.pytest11]
@@ -18,7 +19,6 @@ pytest-shared-session-scope = "pytest_shared_session_scope.plugin"
 [tool.uv]
 dev-dependencies = [
   "pytest-cov == 5.0.0",
-  "pytest-xdist == 3.8.0",
   "polars == 1.6.0",
   "ruff==0.14.3",
   "pyright==1.1.407",
