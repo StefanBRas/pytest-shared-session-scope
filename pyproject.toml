@@ -16,8 +16,8 @@ dependencies = [
 pytest-shared-session-scope = "pytest_shared_session_scope.plugin"
 
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
   "pytest-cov == 5.0.0",
   "polars == 1.6.0",
   "ruff==0.14.3",
