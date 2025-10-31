@@ -37,8 +37,10 @@ def test_fail_other_worker_1(my_fixture_yield):
 def test_fail_other_worker_2(my_fixture_yield):
     time.sleep(delay)
 
+
 def test_fail_other_worker_3(my_fixture_yield):
     time.sleep(delay)
+
 
 def test_fail_other_worker_4(my_fixture_yield, results_dir: Path, worker_id):
     (results_dir / f"{worker_id}_SHOULD_NOT_RUN").touch()

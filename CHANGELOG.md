@@ -1,6 +1,7 @@
 # Changelog
 
 ## [Unreleased]
+- Fix parameterized fixtures overwriting each other `shared_session_scope_json`.
 
 ## [0.5.1]
 - Internal: Fix xdist import in scheduler. Only used in testing, 

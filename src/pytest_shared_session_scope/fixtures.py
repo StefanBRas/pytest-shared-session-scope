@@ -134,8 +134,12 @@ def shared_session_scope_fixture(
                     return
 
                 tests_using_fixture = _get_tests_for_fixture(func, request)
+                param_index = getattr(
+                    request, "param_index", 0
+                )  # Looks like it's always present -  this is just to be safe
 
-                store_identifier = f"{func.__module__}.{func.__qualname__}"
+                store_identifier = f"{func.__module__}.{func.__qualname__}.{param_index}"
+
                 metadata_identifier = store_identifier + "_metadata"
 
                 store_lock = store.lock(store_identifier, fixture_values)

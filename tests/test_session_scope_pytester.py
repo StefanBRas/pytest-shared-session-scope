@@ -162,7 +162,7 @@ def test_fail_fast(pytester: Pytester, n: int, tmp_path):
     assert len(got_cleanup_token) == 1
 
 
-@pytest.mark.parametrize("n", [0, pytest.param(2, marks=pytest.mark.xfail(reason="Issue #31"))])
+@pytest.mark.parametrize("n", [0, pytest.param(2, marks=pytest.mark.xfail(reason="Issue #33"))])
 def test_getfixturevalue(pytester: Pytester, n: int, tmp_path):
     copy_example(pytester, "getfixturevalue", tmp_path)
     res = pytester.runpytest("-n", str(n), "--basetemp", str(tmp_path), "-vvv", "-s")
@@ -183,8 +183,15 @@ def test_parameterize_fixture(pytester: Pytester, n: int, tmp_path):
     res.assert_outcomes(passed=12)
 
     results = [p.name for p in get_output_dir(tmp_path).iterdir()]
+
     got_setup_token = [name for name in results if name.endswith("start")]
     assert len(got_setup_token) == (n or 1)
 
     got_cleanup_token = [name for name in results if name.endswith("CleanupToken.LAST")]
     assert len(got_cleanup_token) == 1
+
+    got_param_value_a = [name for name in results if name.endswith("val_a")]
+    assert len(got_param_value_a) == 6
+
+    got_param_value_b = [name for name in results if name.endswith("val_b")]
+    assert len(got_param_value_b) == 6
