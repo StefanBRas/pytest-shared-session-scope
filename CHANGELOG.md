@@ -1,8 +1,10 @@
 # Changelog
 
 ## [Unreleased]
-
 - Fix parameterized fixtures overwriting each other `shared_session_scope_json`.
+
+## [0.5.1]
+- Internal: Fix xdist import in scheduler. Only used in testing, 
 
 ## [0.5.0]
 - Add `shared_session_scope_pickle` that uses `pickle` for de/serialization.
