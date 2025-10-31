@@ -52,3 +52,9 @@ def fixture_with_pickle():
     if object_instance is SetupToken.FIRST:
         object_instance = CustomPickleObject(42)
     yield object_instance
+
+
+@shared_session_scope_json(params=[1, 2])
+def fixture_with_param(request):
+    yield
+    yield request.param

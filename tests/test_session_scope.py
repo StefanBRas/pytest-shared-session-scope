@@ -45,3 +45,7 @@ def test_fixture_with_serializtion(fixture_with_deserializor):
 
 def test_fixture_with_pickle(fixture_with_pickle):
     assert fixture_with_pickle == CustomPickleObject(42)
+
+
+def test_fixture_with_param(fixture_with_param):
+    assert fixture_with_param in {1, 2}

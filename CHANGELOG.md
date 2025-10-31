@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Fix parameterized fixtures overwriting each other `shared_session_scope_json`.
+
 ## [0.5.0]
 - Add `shared_session_scope_pickle` that uses `pickle` for de/serialization.
 Make fixture that does cleanup also save missing test (which is then an empty set). Should make no runtime in supported use cases.
