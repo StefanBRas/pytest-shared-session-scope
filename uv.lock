@@ -249,11 +249,12 @@ wheels = [
 
 [[package]]
 name = "pytest-shared-session-scope"
-version = "0.5.0"
+version = "0.5.1"
 source = { editable = "." }
 dependencies = [
     { name = "filelock" },
     { name = "pytest" },
+    { name = "pytest-xdist" },
     { name = "typing-extensions" },
 ]
 
@@ -262,7 +263,6 @@ dev = [
     { name = "polars" },
     { name = "pyright" },
     { name = "pytest-cov" },
-    { name = "pytest-xdist" },
     { name = "ruff" },
 ]
 
@@ -270,6 +270,7 @@ dev = [
 requires-dist = [
     { name = "filelock", specifier = ">=3.16.0" },
     { name = "pytest", specifier = ">=7.0.0" },
+    { name = "pytest-xdist", specifier = ">=2.0.0" },
     { name = "typing-extensions", specifier = ">=3.6.2" },
 ]
 
@@ -278,7 +279,6 @@ dev = [
     { name = "polars", specifier = "==1.6.0" },
     { name = "pyright", specifier = "==1.1.407" },
     { name = "pytest-cov", specifier = "==5.0.0" },
-    { name = "pytest-xdist", specifier = "==3.8.0" },
     { name = "ruff", specifier = "==0.14.3" },
 ]
 
